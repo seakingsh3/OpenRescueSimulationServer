@@ -1,0 +1,878 @@
+
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{"OpenRescueSim" }}</title>
+  <!-- Tailwind + DaisyUI build -->
+  <link rel="stylesheet" href="/static/dist/style.css" />
+    <!--<script src="https://cdn.tailwindcss.com"></script>-->
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+  <script>
+    // Theme früh setzen, um FOUC zu vermeiden
+    (function() {
+      try {
+        const stored = localStorage.getItem('ors-theme');
+        const theme = stored === 'light' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <style>
+    /* Global button text breathing room (without affecting icon-circle/square buttons) */
+    .btn:not(.btn-circle):not(.btn-square) {
+      padding-inline: 0.95rem;
+    }
+    .btn.btn-xs:not(.btn-circle):not(.btn-square) {
+      padding-inline: 0.7rem;
+    }
+  </style>
+</head>
+<body class="font-sans min-h-screen bg-base-100 text-base-content">
+  <div class="drawer lg:drawer-open min-h-screen app-shell">
+    <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" />
+
+    <div class="drawer-content flex flex-col min-h-screen">
+      <header class="app-header bg-gray-800 shadow-md">
+        <div class="flex items-center justify-between px-4 py-3">
+          <div class="flex items-center gap-3">
+            <label for="sidebar-toggle" class="btn btn-outline btn-square text-white" aria-label="Menü umschalten">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </label>
+             <div class="flex items-center gap-3">
+              <img src="/static/icons/icon_ors.png" alt="Viewer" class="w-6 h-6">
+              <div class="text-xl font-bold text-white">Open Rescue Sim </div>
+            </div>
+            
+            
+          </div>
+          <div class="flex items-center gap-3">
+            <div id="headerUser" class="text-sm text-gray-200 hidden">
+              <span class="text-gray-400">Eingeloggt als</span>
+              <span id="headerUsername" class="font-semibold text-white ml-1"></span>
+            </div>
+            <button id="openLoginModal" class="btn btn-sm btn-circle btn-primary bg-gradient-to-r from-indigo-500 to-blue-500 border-0 shadow-md hover:from-indigo-400 hover:to-blue-400">
+              <img src="/static/icons/btn-login.svg" alt="Marker Icon" class="w-6 h-6">
+              
+            </button>
+            <button id="logoutButton" class="btn btn-sm btn-error hidden">
+              <img src="/static/icons/btn-login.svg" alt="Marker Icon" class="w-6 h-6">
+            </button>
+          </div>
+        </div>
+        <div id="sessionStatusBar" class="session-status idle px-4 py-3 text-sm text-neutral-content flex items-center gap-3">
+          <span class="status-dot"></span>
+          <div class="flex-1 min-w-0">
+            <div id="sessionStatusTitle" class="font-semibold truncate">Lade Session-Status…</div>
+            <div id="sessionStatusMeta" class="text-xs text-gray-300 truncate"></div>
+          </div>
+          <div id="sessionStatusViewers" class="text-xs text-gray-300 text-right max-w-[360px] flex flex-wrap gap-2 justify-end hidden"></div>
+          <button id="sessionStatusLoginBtn" class="btn btn-xs btn-error hidden animate-pulse">Einloggen</button>
+          <div id="sessionStatusTimer" class="font-mono text-base text-white px-2">--:--</div>
+          <button id="sessionStatusRefresh" class="btn btn-xs btn-outline text-white">↻</button>
+        </div>
+      </header>
+
+      <main class="max-w-7xl w-full mx-auto px-6 py-6 flex-1">
+        {% block content %}{% endblock %}
+      </main>
+
+      <footer class="app-footer footer sm:footer-horizontal bg-gray-800 text-neutral-content items-center p-4">
+        <div id="viewerReportBar" class="viewer-report-bar empty">
+          <div class="flex-1 min-w-0">
+            <div id="viewerReportTitle" class="viewer-report-title">✅ Keine Viewer-Fehler</div>
+            <div id="viewerReportMeta" class="viewer-report-meta"></div>
+            <div id="viewerReportNote" class="viewer-report-note"></div>
+            <pre id="viewerReportLogs" class="viewer-report-logs hidden"></pre>
+          </div>
+          <div class="flex flex-col items-end gap-2">
+            <button id="viewerReportToggle" class="btn btn-xs btn-outline text-red-100 border-red-300/60">Details</button>
+            <button id="viewerReportAck" class="btn btn-xs btn-error">Bestätigen</button>
+          </div>
+        </div>
+        <aside class="grid-flow-col items-center">
+         
+          
+          <p>© 2025 OpenRescueSim-Projekt · Lizenz: <a class="link" href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPLv3</a></p>
+        </aside>
+        <nav class="grid-flow-col gap-4 md:place-self-center md:justify-self-end">
+          <a>
+            
+          </a>
+        </nav>
+      </footer>
+    </div>
+
+    <div class="drawer-side is-drawer-close:overflow-visible">
+      <label for="sidebar-toggle" aria-label="close sidebar" class="drawer-overlay"></label>
+      <aside class="sidebar-shell flex min-h-full flex-col items-start bg-base-200 w-64 p-3 gap-3">
+        <div class="w-full flex items-center justify-between px-2">
+          <span class="section-label text-lg font-semibold">Navigation</span>
+        </div>
+        <ul class="menu w-full grow">
+          <li>
+            <a href="/ui" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Dashboard">
+              <img src="/static/icons/nav-home.svg" alt="" class="w-5 h-5">
+              <span class="text-label">Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="/ui/simulate" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Simulieren">
+              <img src="/static/icons/nav-sim.svg" alt="" class="w-5 h-5">
+              <span class="text-label">Simulieren</span>
+            </a>
+          </li>
+          <li>
+            <a href="/ui/debrief" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Debriefen">
+              <img src="/static/icons/nav-debrief.svg" alt="" class="w-5 h-5">
+              <span class="text-label">Debriefen</span>
+            </a>
+          </li>
+          <li>
+            <a href="/ui/viewer" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Viewer">
+              <img src="/static/icons/nav-viewer.svg" alt="" class="w-5 h-5">
+              <span class="text-label">Zuschauen</span>
+            </a>
+          </li>
+          <li>
+            <a href="/ui/participants" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Teilnehmer-Notizblätter">
+              <img src="/static/icons/nav-participants.svg" alt="" class="w-5 h-5">
+              <span class="text-label">Teilnehmer</span>
+            </a>
+          </li>
+          <li>
+            <a href="/ui/camera-control" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Kamerasteuerung (Pan/Tilt/Zoom)">
+              <img src="/static/icons/nav-camera.svg" alt="" class="w-5 h-5">
+              <span class="text-label">Kamera</span>
+            </a>
+          </li>
+          <li>
+            <a href="/ui/options/system" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Optionen (Systemstatus, Einstellungen, Stats, Achievements)">
+              <img src="/static/icons/nav-options.svg" alt="" class="w-5 h-5">
+              <span class="text-label">Optionen</span>
+            </a>
+          </li>
+          <li>
+            <a href="/help/" target="_blank" rel="noopener" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Hilfe">
+              <img src="/static/icons/nav-help.svg" alt="" class="w-5 h-5">
+              <span class="text-label">Hilfe</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="w-full px-2 py-2 rounded-lg bg-gray-700/60 flex items-center justify-between">
+          <span class="text-sm text-label">Thema</span>
+          <label class="flex items-center gap-2 cursor-pointer text-xs">
+            <span class="text-label">Hell</span>
+            <input id="themeToggle" type="checkbox" class="toggle" />
+            <span class="text-label">Dunkel</span>
+          </label>
+        </div>
+        <div class="mt-auto flex flex-col gap-2 w-full">
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Globale FAB (Simulationskontrolle); Logik bleibt in simulate.js -->
+  <div class="fixed right-6 top-1/3 -translate-y-1/3 z-50 pointer-events-none global-fab">
+    <div class="fab fab-flower pointer-events-auto">
+      <div tabindex="0" role="button" class="fab-main-action btn btn-circle btn-lg">
+        <img src="/static/icons/icon_ors.png" alt="Main">
+      </div>
+
+      <button id="startBtn" class="btn btn-circle btn-lg btn-success tooltip tooltip-left" data-tip="Start">
+        <img src="/static/icons/fab-start.svg" alt="Start">
+      </button>
+
+      <button id="stopBtn" class="btn btn-circle btn-lg btn-error tooltip tooltip-left" data-tip="Stop">
+        <img src="/static/icons/fab-stop.svg" alt="Stop">
+      </button>
+
+      <button id="viewerBtn" class="btn btn-circle btn-lg btn-warning relative tooltip tooltip-left" data-tip="Viewer">
+        <img src="/static/icons/fab-viewer.svg" alt="Viewer">
+        <span id="viewerBtnBadge"
+              class="hidden absolute -top-2 -right-2 text-[11px] font-bold
+                     bg-red-600 text-white rounded-full px-2 py-0.5 shadow">
+          0
+        </span>
+      </button>
+
+      <button id="pttBtn" class="btn btn-circle btn-lg btn-info tooltip tooltip-left" data-tip="PTT">
+        <img src="/static/icons/fab-ptt.svg" alt="PTT">
+      </button>
+
+      <button id="deleteAllSessionsBtn" class="btn btn-circle btn-lg btn-neutral tooltip tooltip-left focus-hide" data-tip="Sessions löschen">
+        <img src="/static/icons/fab-delete.svg" alt="Delete">
+      </button>
+    </div>
+  </div>
+
+  <!-- Commit-Start Button (außerhalb der Flower, nur bei Pre-Start sichtbar) -->
+  <div id="commitBtnWrapper" class="fixed right-6 top-[48%] z-50 pointer-events-none hidden">
+    <button id="commitBtn"
+            class="pointer-events-auto btn btn-circle btn-lg btn-info tooltip tooltip-left animate-pulse"
+            data-tip="Final starten">
+      ▶️
+    </button>
+  </div>
+
+  <!-- Delete Sessions Modal (global) -->
+  <div id="deleteSessionsModal"
+       class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden overflow-y-auto">
+    <div class="mx-auto w-full max-w-2xl my-8">
+      <div class="bg-gray-900 rounded-xl shadow-xl max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
+          <h2 class="text-xl font-bold text-white">🚮 Sessions löschen</h2>
+          <button id="closeDeleteSessionsModal" class="text-gray-300 hover:text-white text-2xl leading-none">✖</button>
+        </div>
+        <div class="flex items-center justify-between px-6 py-3 border-b border-gray-800">
+          <div class="text-gray-300 text-sm">
+            Wähle einzelne Sessions zum Löschen aus. <span class="text-yellow-400">Aktive</span> werden vorher gestoppt.
+          </div>
+          <div class="flex gap-2">
+            <button id="selectAllSessionsBtn" class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-white text-sm">Alle auswählen</button>
+            <button id="refreshSessionsListBtn" class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-white text-sm">↻ Aktualisieren</button>
+          </div>
+        </div>
+        <div id="deleteSessionsList" class="flex-1 overflow-y-auto divide-y divide-gray-800">
+          <div class="p-4 text-gray-400">Lade Sessions…</div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-800 sticky bottom-0 bg-gray-900 z-10">
+          <div class="flex justify-between items-center">
+            <div class="text-sm text-gray-400" id="deleteSessionsCounter">0 ausgewählt</div>
+            <div class="flex gap-3">
+              <button id="deleteSelectedBtn" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded text-white font-bold disabled:opacity-50" disabled>Ausgewählte löschen</button>
+              <button id="deleteAllInsideModalBtn" class="bg-yellow-600 hover:bg-yellow-500 px-4 py-2 rounded text-white font-bold">Alles löschen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Viewer Management Modal (global) -->
+  <div id="viewerModal"
+       class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden overflow-y-auto">
+    <div class="mx-auto w-full max-w-3xl my-8">
+      <div class="bg-gray-900 rounded-xl shadow-xl max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
+          <h2 class="text-xl font-bold text-white">👁️ Viewer verwalten</h2>
+          <button id="closeViewerModal" class="text-gray-300 hover:text-white text-2xl leading-none">✖</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 px-6 py-3 border-b border-gray-800">
+          <div class="flex items-center gap-2">
+            <button id="addViewerBtn" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded text-white text-sm">＋ Neu</button>
+            <button id="refreshViewersBtn" class="bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-white text-sm">↻ Aktualisieren</button>
+          </div>
+          <div class="ml-auto flex items-center gap-2">
+            <input id="viewerFilterInput" type="text" placeholder="Filtern (Name/Typ/URL)…"
+                   class="bg-gray-800 text-white px-3 py-1.5 rounded text-sm w-64">
+            <span id="viewerStats" class="text-xs text-gray-400">0 aktiv • 0 ausgewählt • 0 gesamt</span>
+          </div>
+        </div>
+        <div id="viewerList" class="flex-1 overflow-y-auto divide-y divide-gray-800">
+          <div class="p-4 text-gray-400">Lade Viewer…</div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-800 sticky bottom-0 bg-gray-900 z-10">
+          <div class="flex justify-end gap-3">
+            <button id="selectNoneViewersBtn" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-white text-sm">Auswahl leeren</button>
+            <button id="selectAllViewersBtn" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-white text-sm">Alle auswählen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- PTT/Paging Einstellungen Modal -->
+  <div id="pttModal" class="fixed inset-0 bg-black/70 hidden" style="z-index:99999;">
+    <div class="mx-auto mt-10 w-full max-w-lg bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl p-6 relative"
+         style="z-index:100000;">
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <h2 class="text-xl font-bold text-white">🎙️ Durchsage in den Raum</h2>
+          <p class="text-sm text-gray-400">Voice of Room: Mikrofon → Raumlautsprecher, optional auch an die Viewer.</p>
+        </div>
+        <button id="pttModalClose" class="btn btn-sm btn-ghost text-white">✕</button>
+      </div>
+
+      <div class="space-y-4 text-gray-100">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label class="label-text text-sm text-gray-300" for="pttGroupSelect">Lautsprecher-Gruppe</label>
+            <select id="pttGroupSelect" class="select select-sm select-bordered w-full bg-gray-800 text-white">
+              <option value="default">default</option>
+            </select>
+            <p id="pttGroupInfo" class="text-xs text-gray-500 mt-1">Lade Lautsprecher…</p>
+          </div>
+          <div class="space-y-2">
+            <label class="label cursor-pointer justify-start gap-3 py-1">
+              <input id="pttForwardViewers" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
+              <span class="label-text text-gray-200 text-sm">Auch an Viewer senden</span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-3 py-1">
+              <span class="label-text text-gray-200 text-sm">Halten</span>
+              <input id="pttModeToggle" type="checkbox" class="toggle toggle-sm toggle-primary" />
+              <span class="label-text text-gray-200 text-sm">Umschalten</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-gray-800 bg-gray-800/40 p-3 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-gray-400">Status</span>
+            <span id="pttStatus" class="text-gray-200 font-medium">Bereit</span>
+          </div>
+          <div class="h-2 w-full bg-gray-800 rounded overflow-hidden">
+            <div id="pttMeterBar" class="h-full bg-emerald-500 transition-all duration-75" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="flex flex-col items-center gap-3 pt-1">
+          <button id="pttModalStart"
+                  class="btn btn-circle select-none"
+                  style="width:180px;height:180px;border-radius:9999px;background:#2563eb;border:3px solid #60a5fa;touch-action:none;">
+            <span class="text-white text-lg font-bold text-center leading-tight">Halten<br>zum Sprechen</span>
+          </button>
+          <p id="pttHint" class="text-xs text-gray-500 text-center">
+            Mikrofonzugriff braucht HTTPS oder localhost. Siehe Hilfe → Audio &amp; Durchsagen.
+          </p>
+        </div>
+
+        <div class="flex justify-end">
+          <button id="pttModalCancel" class="btn btn-ghost">Schließen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center" style="z-index:200000;">
+    <div class="bg-gray-800 p-8 rounded-xl w-96 space-y-4 shadow-2xl border border-gray-700" style="z-index:200001;">
+      <h2 class="text-2xl font-bold text-center">🔒 Login</h2>
+      <input id="loginUsername" type="text" placeholder="Benutzername" class="p-2 rounded bg-gray-700 w-full">
+      <input id="loginPassword" type="password" placeholder="Passwort" class="p-2 rounded bg-gray-700 w-full">
+      <button id="loginButton" class="bg-green-600 hover:bg-green-500 px-6 py-2 rounded font-bold w-full">
+        ➡️ Einloggen
+      </button>
+      <button id="closeLoginModal" class="text-gray-400 hover:text-white text-sm w-full text-center mt-2">
+        ✖️ Abbrechen
+      </button>
+    </div>
+  </div>
+
+  <!-- Session-Name Modal (global, genutzt von simulate.js) -->
+  <div id="sessionNameModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-900 rounded-xl p-6 w-full max-w-md shadow-xl">
+      <h2 class="text-xl font-bold text-white mb-4">📋 Session-Namen eingeben</h2>
+
+      <input type="text" id="sessionNameInput" placeholder="Session-Name..."
+             class="bg-gray-800 text-white px-4 py-2 rounded w-full mb-4 outline-none focus:ring-2 focus:ring-blue-500">
+
+      <label class="block text-sm font-medium mb-1 text-gray-200">
+        Viewer auswählen & Rolle/Stream wählen
+      </label>
+      <div id="viewerSelectList" class="space-y-2 mb-4"></div>
+
+      <label class="flex items-center gap-2 text-sm text-gray-200 mb-4">
+        <input type="checkbox" id="prestartCheckbox" class="checkbox checkbox-xs">
+        <span>Vor-Start (Ausbilder benachrichtigen) auslösen</span>
+      </label>
+
+      <label for="roomSelect" class="block text-sm font-medium mb-1 text-gray-200">
+        Raum auswählen 
+      </label>
+      <select id="roomSelect" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 mb-4 text-white">
+        <option value="">⚙️ Kein Raum (Standard-Pipeline)</option>
+      </select>
+
+      <div class="flex justify-end gap-4">
+        <button id="cancelSessionNameBtn"
+                class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded text-white font-bold">
+          Abbrechen
+        </button>
+        <button id="confirmSessionNameBtn"
+                class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded text-white font-bold">
+          Starten
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="achievementToastHost" class="achievement-toast-host"></div>
+</body>
+</html>
+
+<script type="module">
+  import api from '/static/js/api.js';
+  import '/static/js/base.js';
+  // Basis-URL immer von der aktuellen Seite ableiten, damit kein CORS auftritt
+  const API_BASE_URL = window.location.origin;
+
+  // Modal öffnen/schließen wie gehabt
+  const bodyEl = document.body;
+  document.getElementById("openLoginModal").addEventListener("click", () => {
+    document.getElementById("loginModal").classList.remove("hidden");
+    bodyEl.classList.add("modal-open");
+  });
+  document.getElementById("closeLoginModal").addEventListener("click", () => {
+    document.getElementById("loginModal").classList.add("hidden");
+    bodyEl.classList.remove("modal-open");
+  });
+  const getStoredToken = () => localStorage.getItem('access_token') || localStorage.getItem('token');
+  const clearAuthStorage = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+  };
+
+  let _lastAuthPromptTs = 0;
+  window.addEventListener('ors:auth-required', () => {
+    const now = Date.now();
+    if (now - _lastAuthPromptTs < 2500) return;
+    _lastAuthPromptTs = now;
+    clearAuthStorage();
+    updateNav();
+    showUiToast('Bitte erneut einloggen.', false);
+    // Kein erzwungenes Fullscreen-Modal mehr; Hinweis läuft über SessionStatusBar + Toast.
+  });
+
+// Theme Toggle (hell/dunkel)
+(function() {
+  const storageKey = 'ors-theme';
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+
+  const apply = (theme) => {
+    const t = theme === 'light' ? 'light' : 'dark';
+    root.setAttribute('data-theme', t);
+    try { localStorage.setItem(storageKey, t); } catch (_) {}
+    if (toggle) toggle.checked = t === 'dark';
+  };
+
+  apply(localStorage.getItem(storageKey) || root.getAttribute('data-theme') || 'dark');
+
+  if (toggle) {
+    toggle.addEventListener('change', () => {
+      apply(toggle.checked ? 'dark' : 'light');
+    });
+  }
+})();
+
+// Simulations-FAB global mit simulate.js verknüpfen
+window.addEventListener('DOMContentLoaded', () => {
+  (async () => {
+    try {
+      const mod = await import('/ui/static/js/simulate.js?v=3');
+      if (typeof mod.initSimulatePage === 'function') {
+        mod.initSimulatePage();
+      }
+    } catch (e) {
+      console.warn('simulate.js konnte nicht geladen werden:', e);
+    }
+  })();
+});
+
+let sessionTimer = null;
+let sessionStartTime = null;
+let sessionData = null;
+let sessionHidden = false;
+function setSessionAuthRequired(statusBar, titleEl, metaEl, timerEl) {
+    const loginBtn = document.getElementById("sessionStatusLoginBtn");
+    statusBar.classList.remove("active", "idle");
+    statusBar.classList.add("bg-red-700/60", "border-red-400", "animate-pulse");
+    titleEl.textContent = "🔒 Login erforderlich";
+    metaEl.textContent = "Bitte einloggen, um Session-Status zu sehen.";
+    timerEl.textContent = "--:--";
+    const viewersEl = document.getElementById("sessionStatusViewers");
+    if (viewersEl) {
+      viewersEl.textContent = "";
+      viewersEl.classList.add("hidden");
+    }
+    if (loginBtn) loginBtn.classList.remove("hidden");
+}
+
+function clearSessionAuthRequired(statusBar) {
+    const loginBtn = document.getElementById("sessionStatusLoginBtn");
+    statusBar.classList.remove("bg-red-700/60", "border-red-400", "animate-pulse");
+    if (loginBtn) loginBtn.classList.add("hidden");
+}
+
+async function updateSessionStatus(force = false) {
+    if (sessionHidden && !force) return;
+    const statusBar = document.getElementById("sessionStatusBar");
+    const titleEl = document.getElementById("sessionStatusTitle");
+    const metaEl = document.getElementById("sessionStatusMeta");
+    const viewersEl = document.getElementById("sessionStatusViewers");
+    const timerEl = document.getElementById("sessionStatusTimer");
+    if (!statusBar || !titleEl || !metaEl || !timerEl) return;
+
+    try {
+        const data = await api.getSimulationStatus();
+        clearSessionAuthRequired(statusBar);
+        // Falls kein Wechsel, kein force und noch aktiv, nur Zeit weiterlaufen lassen
+        if (!force && sessionData && sessionData.active === data.active && data.active) return;
+
+        sessionData = data;
+
+        if (data.active) {
+            sessionStartTime = data.start_time ? new Date(data.start_time) : new Date();
+            startStatusTimer(statusBar, titleEl, metaEl, timerEl, data);
+        } else {
+            stopStatusTimer(statusBar, titleEl, metaEl, timerEl);
+        }
+    } catch (err) {
+        console.error("Fehler beim Laden des Session-Status:", err);
+        if (String(err?.message || '').includes('401')) {
+            setSessionAuthRequired(statusBar, titleEl, metaEl, timerEl);
+            return;
+        }
+        statusBar.classList.remove("active");
+        statusBar.classList.add("idle");
+        titleEl.textContent = "⚠️ Fehler beim Status-Check.";
+        metaEl.textContent = "";
+        timerEl.textContent = "--:--";
+    }
+}
+
+function startStatusTimer(statusBar, titleEl, metaEl, timerEl, data) {
+    // Falls schon ein Timer läuft, stoppen
+    if (sessionTimer) clearInterval(sessionTimer);
+    clearSessionAuthRequired(statusBar);
+
+    titleEl.textContent = `🎬 Aufnahme läuft`;
+    metaEl.textContent = `${data.name || 'Session'} • ID ${data.session_id}`;
+    const viewersEl = document.getElementById("sessionStatusViewers");
+    if (viewersEl) {
+        const active = Array.isArray(data.active_viewers) ? data.active_viewers : [];
+        if (active.length) {
+            const pills = active.map(v => {
+                const name = v.name ? String(v.name) : '';
+                const idLabel = v.id != null ? `ID ${v.id}` : '';
+                const main = name ? `${name} (${idLabel})` : `#${v.id}`;
+                const online = !!v.online;
+                const color = online ? 'bg-emerald-900/70 text-emerald-100 border-emerald-500/50' : 'bg-gray-700/70 text-gray-200 border-gray-500/40';
+                const dot = online ? '🟢' : '⚪';
+                const label = online ? 'aktiv' : 'getrennt';
+                return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border ${color} whitespace-nowrap">${dot} ${main} · ${label}</span>`;
+            }).join(' ');
+            viewersEl.innerHTML = pills;
+            viewersEl.classList.remove("hidden");
+        } else {
+            viewersEl.innerHTML = "";
+            viewersEl.classList.add("hidden");
+        }
+    }
+    statusBar.classList.remove("idle");
+    statusBar.classList.add("active");
+
+    function renderTime() {
+        const nowSec     = Math.floor(Date.now() / 1000);      // aktueller Unix-Zeitstempel in Sekunden
+    const startedSec = data.start_time;                    // vom Server, ebenfalls Sekunden
+    const elapsed    = Math.max(0, nowSec - startedSec);   // vergangene Sekunden
+
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+
+    const mm = String(minutes).padStart(2, '0');
+    const ss = String(seconds).padStart(2, '0');
+
+    timerEl.textContent = `${mm}:${ss}`;
+    }
+
+    renderTime(); // Sofort anzeigen
+    sessionTimer = setInterval(renderTime, 1000);
+}
+
+function stopStatusTimer(statusBar, titleEl, metaEl, timerEl) {
+    if (sessionTimer) clearInterval(sessionTimer);
+    sessionTimer = null;
+    sessionStartTime = null;
+    sessionData = null;
+    statusBar.classList.remove("active");
+    statusBar.classList.add("idle");
+    titleEl.textContent = "⏹️ Keine aktive Aufnahme";
+    metaEl.textContent = "Starte eine Session, um aufzunehmen";
+    timerEl.textContent = "--:--";
+    const viewersEl = document.getElementById("sessionStatusViewers");
+    if (viewersEl) {
+        viewersEl.textContent = "";
+        viewersEl.classList.add("hidden");
+    }
+    clearSessionAuthRequired(statusBar);
+}
+
+// --- Alle 15 Sekunden Status prüfen ---
+setInterval(() => updateSessionStatus(true), 15000);
+
+// --- Initialer Aufruf beim Laden ---
+window.addEventListener("load", () => updateSessionStatus(true));
+document.addEventListener("visibilitychange", () => {
+  sessionHidden = document.hidden;
+});
+const btnStatusRefresh = document.getElementById("sessionStatusRefresh");
+if (btnStatusRefresh) {
+  btnStatusRefresh.addEventListener("click", () => updateSessionStatus(true));
+}
+const btnStatusLogin = document.getElementById("sessionStatusLoginBtn");
+if (btnStatusLogin) {
+  btnStatusLogin.addEventListener("click", () => {
+    document.getElementById("loginModal").classList.remove("hidden");
+    bodyEl.classList.add("modal-open");
+  });
+}
+
+  function showUiToast(message, ok = true) {
+    const hostId = "globalUiToastHost";
+    let host = document.getElementById(hostId);
+    if (!host) {
+      host = document.createElement("div");
+      host.id = hostId;
+      host.style.position = "fixed";
+      host.style.top = "1rem";
+      host.style.left = "50%";
+      host.style.transform = "translateX(-50%)";
+      host.style.zIndex = "100000";
+      document.body.appendChild(host);
+    }
+    const el = document.createElement("div");
+    el.className = `alert ${ok ? "alert-success" : "alert-error"} shadow-lg`;
+    el.textContent = message;
+    host.appendChild(el);
+    setTimeout(() => {
+      el.remove();
+      if (!host.children.length) host.remove();
+    }, 4200);
+  }
+  window.showUiToast = showUiToast;
+
+  // --- Login über JWT ---
+  document.getElementById("loginButton").addEventListener("click", async () => {
+    const username = document.getElementById("loginUsername").value;
+    const password = document.getElementById("loginPassword").value;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showUiToast(`Login fehlgeschlagen: ${data.error || "Unbekannter Fehler"}`, false);
+        return;
+      }
+
+      // Token und User speichern
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('username', data.username);
+      showUiToast(`Eingeloggt als ${data.username}`, true);
+      document.getElementById("loginModal").classList.add("hidden");
+      updateNav();
+      setTimeout(() => window.location.reload(), 250);
+    } catch (err) {
+      console.error("Login-Fehler:", err);
+      showUiToast("Login fehlgeschlagen", false);
+    }
+  });
+
+  // Enter im Login-Modal soll wie OK klicken funktionieren.
+  ["loginUsername", "loginPassword"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        document.getElementById("loginButton")?.click();
+      }
+    });
+  });
+
+  // --- Logout ---
+  document.getElementById("logoutButton").addEventListener("click", () => {
+    clearAuthStorage();
+    updateNav();
+    showUiToast('Abgemeldet.', true);
+    setTimeout(() => window.location.reload(), 150);
+  });
+
+  // Navigation updaten je nach Token-Status
+  function updateNav() {
+    const token = getStoredToken();
+    const user = localStorage.getItem('username');
+    const loginBtn = document.getElementById("openLoginModal");
+    const logoutBtn = document.getElementById("logoutButton");
+    const headerUser = document.getElementById("headerUser");
+    const headerUsername = document.getElementById("headerUsername");
+
+    if (token && user) {
+      if (loginBtn) loginBtn.classList.add("hidden");
+      if (logoutBtn) logoutBtn.classList.remove("hidden");
+      if (headerUser) headerUser.classList.remove("hidden");
+      if (headerUsername) headerUsername.textContent = user;
+    } else {
+      if (loginBtn) loginBtn.classList.remove("hidden");
+      if (logoutBtn) logoutBtn.classList.add("hidden");
+      if (headerUser) headerUser.classList.add("hidden");
+      if (headerUsername) headerUsername.textContent = '';
+    }
+  }
+
+  // Beim Seiten-Laden prüfen, ob wir noch eingeloggt sind
+  window.addEventListener('DOMContentLoaded', async () => {
+    updateNav();
+
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      // optional: Token-Gültigkeit beim Backend checken
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error();
+        const me = await res.json();
+        // me.username / me.role stehen jetzt zur Verfügung
+      } catch {
+        // Token abgelaufen o.ä.
+        clearAuthStorage();
+        updateNav();
+      }
+    }
+
+    if (!window.location.pathname.startsWith('/setup')) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/setup/status`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.setup_done === false) {
+            window.location.href = '/setup';
+          }
+        }
+      } catch (_) {
+        // ignore setup check errors
+      }
+    }
+  });
+
+  // Viewer-Fehlerberichte (Footer-Bar)
+  (function initViewerReportBar() {
+    const bar = document.getElementById('viewerReportBar');
+    const titleEl = document.getElementById('viewerReportTitle');
+    const metaEl = document.getElementById('viewerReportMeta');
+    const noteEl = document.getElementById('viewerReportNote');
+    const logsEl = document.getElementById('viewerReportLogs');
+    const btnAck = document.getElementById('viewerReportAck');
+    const btnToggle = document.getElementById('viewerReportToggle');
+    if (!bar || !titleEl || !metaEl || !noteEl || !logsEl || !btnAck || !btnToggle) return;
+
+    const queue = [];
+    let current = null;
+    let logsVisible = false;
+    let audioCtx = null;
+
+    function playAlertTone() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(() => {});
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.value = 0.12;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.18);
+      } catch (_) {
+        // optional: ignore if AudioContext not available
+      }
+    }
+
+    function render(item) {
+      current = item || null;
+      logsVisible = false;
+      logsEl.classList.add('hidden');
+      btnToggle.textContent = 'Details';
+      if (!current) {
+        bar.classList.add('empty');
+        titleEl.textContent = '✅ Keine Viewer-Fehler';
+        metaEl.textContent = '';
+        noteEl.textContent = '';
+        logsEl.textContent = '';
+        btnToggle.classList.add('hidden');
+        btnAck.classList.add('hidden');
+        return;
+      }
+      bar.classList.remove('empty');
+      btnToggle.classList.remove('hidden');
+      btnAck.classList.remove('hidden');
+      const vid = current.viewer_id ?? '—';
+      const sid = current.session_id ?? '—';
+      const ts = current.ts ? new Date(current.ts).toLocaleString() : '';
+      titleEl.textContent = `⚠️ Viewer ${vid} meldet Fehler`;
+      metaEl.textContent = `Session ${sid}${ts ? ` • ${ts}` : ''}`;
+      noteEl.textContent = current.note ? current.note : '';
+      if (Array.isArray(current.logs) && current.logs.length) {
+        logsEl.textContent = current.logs.join('\n');
+        btnToggle.classList.remove('hidden');
+      } else {
+        logsEl.textContent = '';
+        btnToggle.classList.add('hidden');
+      }
+    }
+
+    btnAck.addEventListener('click', async () => {
+      if (!current) return;
+      try {
+        const ackBy = localStorage.getItem('username') || null;
+        await fetch(`${API_BASE_URL}/api/viewers/${encodeURIComponent(current.viewer_id)}/report_ack`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: current.session_id ?? null, ack_by: ackBy })
+        });
+      } catch (e) {
+        console.warn('viewer report ack failed', e);
+      }
+      if (queue.length) queue.shift();
+      render(queue[0] || null);
+    });
+
+    btnToggle.addEventListener('click', () => {
+      logsVisible = !logsVisible;
+      logsEl.classList.toggle('hidden', !logsVisible);
+      btnToggle.textContent = logsVisible ? 'Weniger' : 'Details';
+    });
+
+    window.__orsReportBar = {
+      pushReport: (msg) => {
+        queue.push(msg);
+        if (!current) render(queue[0]);
+        playAlertTone();
+      },
+    };
+
+    // UI-Broadcast WS (nur für Viewer-Reports)
+    try {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${proto}//${location.host}/ws`);
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === 'viewer_report') {
+            window.__orsReportBar.pushReport(msg);
+          }
+        } catch (_) {}
+      };
+    } catch (_) {}
+  })();
+
+</script>

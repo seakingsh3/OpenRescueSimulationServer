@@ -1,0 +1,509 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@plugin "daisyui/theme" {
+  name: "black";
+  default: false;
+  prefersdark: false;
+  color-scheme: "dark";
+  --color-base-100: oklch(0% 0 0);
+  --color-base-200: oklch(19% 0 0);
+  --color-base-300: oklch(22% 0 0);
+  --color-base-content: oklch(87.609% 0 0);
+  --color-primary: oklch(35% 0 0);
+  --color-primary-content: oklch(100% 0 0);
+  --color-secondary: oklch(35% 0 0);
+  --color-secondary-content: oklch(100% 0 0);
+  --color-accent: oklch(35% 0 0);
+  --color-accent-content: oklch(100% 0 0);
+  --color-neutral: oklch(35% 0 0);
+  --color-neutral-content: oklch(100% 0 0);
+  --color-info: oklch(45.201% 0.313 264.052);
+  --color-info-content: oklch(89.04% 0.062 264.052);
+  --color-success: oklch(51.975% 0.176 142.495);
+  --color-success-content: oklch(90.395% 0.035 142.495);
+  --color-warning: oklch(96.798% 0.211 109.769);
+  --color-warning-content: oklch(19.359% 0.042 109.769);
+  --color-error: oklch(62.795% 0.257 29.233);
+  --color-error-content: oklch(12.559% 0.051 29.233);
+  --radius-selector: 0rem;
+  --radius-field: 0rem;
+  --radius-box: 0rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@layer components {
+  /* Sidebar Collapse */
+  #sidebar-toggle:not(:checked) ~ .drawer-side .sidebar-shell {
+    width: 3.75rem;
+  }
+
+  /* Globale Button-Farbwelt (Teal) */
+  :root {
+    --ors-teal: #14b8a6;
+    --ors-teal-dark: #0d9488;
+    --app-header-h: 116px;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-accent,
+  .btn-info {
+    background-color: var(--ors-teal) !important;
+    border-color: var(--ors-teal-dark) !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(20, 184, 166, 0.25);
+    transition: all 160ms ease;
+  }
+
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .btn-accent:hover,
+  .btn-info:hover {
+    background-color: var(--ors-teal-dark) !important;
+    border-color: var(--ors-teal-dark) !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 30px rgba(13, 148, 136, 0.35);
+  }
+
+  .btn-outline {
+    color: var(--ors-teal) !important;
+    border-color: var(--ors-teal) !important;
+    transition: all 160ms ease;
+  }
+
+  .btn-outline:hover {
+    background-color: var(--ors-teal) !important;
+    color: #ffffff !important;
+    border-color: var(--ors-teal-dark) !important;
+    box-shadow: 0 10px 24px rgba(20, 184, 166, 0.2);
+  }
+
+  .achievement-toast-host {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    z-index: 70;
+    pointer-events: none;
+  }
+
+  .achievement-toast {
+    width: 320px;
+    max-width: calc(100vw - 2rem);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(3, 7, 18, 0.98));
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    color: #e2e8f0;
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.6), 0 0 18px rgba(56, 189, 248, 0.25);
+    transform: translateX(30px) scale(0.98);
+    opacity: 0;
+    animation: ors-achievement-in 420ms ease-out forwards;
+    pointer-events: auto;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .achievement-toast::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 55%);
+    opacity: 0.9;
+    pointer-events: none;
+  }
+
+  .achievement-toast.out {
+    animation: ors-achievement-out 280ms ease-in forwards;
+  }
+
+  .achievement-toast .toast-title {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    color: #7dd3fc;
+  }
+
+  .achievement-toast .toast-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+
+  .achievement-toast .toast-meta {
+    font-size: 0.8rem;
+    color: #94a3b8;
+  }
+
+  .achievement-toast .toast-desc {
+    font-size: 0.85rem;
+    color: #cbd5f5;
+    margin-top: 0.25rem;
+  }
+
+  .achievement-toast .toast-bar {
+    height: 3px;
+    width: 100%;
+    margin-top: 0.6rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #38bdf8, #22d3ee, #a5f3fc);
+    animation: ors-achievement-progress var(--toast-duration, 6000ms) linear forwards;
+  }
+
+  @keyframes ors-achievement-in {
+    0% { opacity: 0; transform: translateX(35px) scale(0.96); }
+    70% { opacity: 1; transform: translateX(-2px) scale(1.02); }
+    100% { opacity: 1; transform: translateX(0) scale(1); }
+  }
+
+  @keyframes ors-achievement-out {
+    0% { opacity: 1; transform: translateX(0) scale(1); }
+    100% { opacity: 0; transform: translateX(24px) scale(0.98); }
+  }
+
+  @keyframes ors-achievement-progress {
+    from { transform: scaleX(1); transform-origin: left; }
+    to { transform: scaleX(0); transform-origin: left; }
+  }
+
+  #sidebar-toggle:not(:checked) ~ .drawer-side .sidebar-shell .text-label,
+  #sidebar-toggle:not(:checked) ~ .drawer-side .sidebar-shell .section-label {
+    display: none;
+  }
+
+  #sidebar-toggle:not(:checked) ~ .drawer-side .drawer-overlay {
+    display: none;
+  }
+
+  #sidebar-toggle:not(:checked) ~ .drawer-side .sidebar-shell ul.menu > li > * {
+    justify-content: center;
+  }
+
+  #sidebar-toggle:not(:checked) ~ .drawer-side .sidebar-shell details > summary {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    justify-content: center;
+  }
+
+  #sidebar-toggle:not(:checked) ~ .drawer-side .sidebar-shell .menu img {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px;
+  }
+
+  /* SVG-Farben per Filter: helles Theme → schwarze Icons, dunkles Theme → weiß (invertiert) */
+  [data-theme="dark"] .sidebar-shell img {
+    filter: invert(1) brightness(1.2);
+  }
+
+  [data-theme="light"] .sidebar-shell img {
+    filter: none;
+  }
+
+  /* FAB bleibt farblich unverändert (kein Theme-Filter) */
+  .global-fab img {
+    filter: none !important;
+  }
+
+  .global-fab .fab-main-action,
+  .global-fab .fab-main-action:hover {
+    background: #0f172a !important;
+    border-color: #0f172a !important;
+    color: #ffffff !important;
+  }
+
+  .global-fab .fab-flower > button {
+    background: #111827 !important;
+    border-color: #111827 !important;
+    color: #ffffff !important;
+  }
+
+  .global-fab .fab {
+    background: rgba(33, 33, 33, 0.28);
+    border-radius: 9999px;
+    padding: 6px;
+    backdrop-filter: blur(4px);
+  }
+
+  .sidebar-shell {
+    transition: width 150ms ease;
+  }
+
+  /* Layout: Header/Sidebar/Content nicht überlappen */
+  .app-shell {
+    position: relative;
+    z-index: 1;
+    max-width: 2100px;
+    margin: 0 auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  /* Header und Footer müssen über `main` (z-index 10) liegen, sonst scrollt der
+     Seiteninhalt bei gleichem z-index über sie hinweg (spätere DOM-Position gewinnt). */
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+  }
+
+  /* Wenn ein Modal geöffnet ist, alles im Hintergrund einschränken */
+  body.modal-open {
+    overflow: hidden;
+  }
+
+  /* Zweite Selektor-Variante: greift automatisch, sobald irgendein Dialog/Overlay
+     sichtbar ist – auch bei Dialogen, die `modal-open` nicht selbst setzen. Ohne das
+     liegt die Seitenleiste (z-index 10, im DOM nach dem Inhalt) über jedem Dialog. */
+  body.modal-open .app-header,
+  body.modal-open .drawer-side,
+  body:has(.ors-modal:not(.hidden), .fixed.inset-0:not(.hidden)) .app-header,
+  body:has(.ors-modal:not(.hidden), .fixed.inset-0:not(.hidden)) .drawer-side {
+    pointer-events: none;
+    z-index: 0 !important;
+    filter: blur(1px);
+  }
+
+  .app-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+  }
+
+  .drawer-side .sidebar-shell {
+    position: sticky;
+    top: var(--app-header-h);
+    height: calc(100vh - var(--app-header-h));
+    margin-top: var(--app-header-h);
+    z-index: 8;
+  }
+
+  .drawer-content {
+    z-index: 10;
+  }
+
+  /* Bewusst OHNE z-index: ein z-index würde main zu einem eigenen Stapelkontext machen
+     und damit jeden Dialog darin (Räume, Kameras, …) unter den Header deckeln, egal
+     welchen z-index der Dialog selbst hat. */
+  main {
+    position: relative;
+  }
+
+  /* Session Status Bar */
+  .session-status {
+    transition: background 180ms ease, border-color 180ms ease;
+    border: 1px solid transparent;
+  }
+
+  .session-status.active {
+    background: linear-gradient(90deg, rgba(34,197,94,0.18), rgba(34,197,94,0.05));
+    border-color: rgba(34,197,94,0.35);
+  }
+
+  .session-status.idle {
+    background: linear-gradient(90deg, rgba(107,114,128,0.18), rgba(107,114,128,0.05));
+    border-color: rgba(107,114,128,0.35);
+  }
+
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    display: inline-block;
+    margin-right: 10px;
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
+    transition: background 180ms ease;
+  }
+
+  .session-status.active .status-dot { background: #22c55e; }
+  .session-status.idle .status-dot { background: #9ca3af; }
+
+  .viewer-report-bar {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(248, 113, 113, 0.4);
+    background: linear-gradient(90deg, rgba(127,29,29,0.45), rgba(24,24,27,0.2));
+    color: #fee2e2;
+  }
+
+  .viewer-report-bar.empty {
+    border-color: rgba(148, 163, 184, 0.25);
+    background: linear-gradient(90deg, rgba(30,41,59,0.6), rgba(15,23,42,0.2));
+    color: #e2e8f0;
+  }
+
+  .viewer-report-bar.empty .viewer-report-title {
+    color: #e2e8f0;
+  }
+
+  .viewer-report-title {
+    font-weight: 600;
+  }
+
+  .viewer-report-meta {
+    font-size: 0.75rem;
+    color: rgba(254, 226, 226, 0.75);
+  }
+
+  .viewer-report-note {
+    font-size: 0.85rem;
+    color: #fef2f2;
+  }
+
+  .viewer-report-logs {
+    margin-top: 0.5rem;
+    max-height: 160px;
+    overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.7rem;
+    background: rgba(15, 23, 42, 0.45);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    white-space: pre-wrap;
+  }
+}
+
+/* ── ORS Dialog-Design (aus options.html verschoben, gilt für alle Seiten) ── */
+  /* ── ORS Dialog-Design (Räume, Kameras, Audio) ───────────────────────── */
+  .ors-modal { position: fixed; inset: 0; z-index: 100000; background: rgba(2,6,23,0.72); backdrop-filter: blur(4px); padding: 0.5rem; }
+  @media (min-width: 768px) { .ors-modal { padding: 1.25rem; } }
+  .ors-shell {
+    width: 100%; margin: 0 auto; height: 100%; max-height: 96vh;
+    display: flex; flex-direction: column; overflow: hidden;
+    background: linear-gradient(180deg, #111827 0%, #0b1220 100%);
+    border: 1px solid rgba(148,163,184,0.18); border-radius: 1.25rem;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .ors-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    padding: 0.9rem 1.25rem; flex-shrink: 0;
+    background: linear-gradient(90deg, rgba(20,184,166,0.16), rgba(14,165,233,0.10) 60%, transparent);
+    border-bottom: 1px solid rgba(148,163,184,0.14);
+  }
+  .ors-head-title { display: flex; align-items: center; gap: 0.75rem; }
+  .ors-head-icon {
+    width: 2.5rem; height: 2.5rem; border-radius: 0.8rem; display: grid; place-items: center; font-size: 1.25rem;
+    background: linear-gradient(160deg, #14b8a6, #0f766e); box-shadow: 0 6px 16px rgba(20,184,166,0.35);
+  }
+  .ors-head h2, .ors-head h3 { font-size: 1.05rem; font-weight: 800; color: #f8fafc; line-height: 1.2; }
+  .ors-head .ors-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 0.1rem; }
+  .ors-close {
+    width: 2.2rem; height: 2.2rem; border-radius: 999px; display: grid; place-items: center;
+    color: #94a3b8; background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.15);
+  }
+  .ors-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
+  .ors-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  .ors-foot {
+    position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    padding: 0.75rem 1.25rem; border-top: 1px solid rgba(148,163,184,0.14);
+    background: rgba(11,18,32,0.92); backdrop-filter: blur(6px);
+  }
+  .ors-section {
+    position: relative; border-radius: 1rem; padding: 1rem 1.1rem;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(148,163,184,0.12);
+  }
+  .ors-section + .ors-section, .ors-section + details.ors-section { margin-top: 1rem; }
+  .ors-section-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+  .ors-section-title { display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #cbd5e1; }
+  .ors-step {
+    width: 1.6rem; height: 1.6rem; border-radius: 999px; display: grid; place-items: center;
+    font-size: 0.75rem; font-weight: 800; color: #fff;
+    background: linear-gradient(160deg, #14b8a6, #0f766e); box-shadow: 0 3px 10px rgba(20,184,166,0.35);
+  }
+  .ors-hint { font-size: 0.7rem; color: #64748b; line-height: 1.4; }
+  .ors-label { display: block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.3rem; }
+  /* Eingabefelder einheitlich, gilt auch für JS-erzeugte Felder */
+  .ors-modal input[type="text"], .ors-modal input[type="number"], .ors-modal input[type="search"],
+  .ors-modal select, .ors-modal textarea {
+    background: rgba(15,23,42,0.85) !important; border: 1px solid rgba(148,163,184,0.22) !important;
+    border-radius: 0.65rem !important; color: #f1f5f9 !important; font-size: 0.85rem;
+    padding: 0.5rem 0.75rem; min-height: 2.4rem; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .ors-modal input[readonly] { color: #94a3b8 !important; background: rgba(15,23,42,0.5) !important; }
+  .ors-modal input:focus, .ors-modal select:focus, .ors-modal textarea:focus {
+    outline: none; border-color: #14b8a6 !important; box-shadow: 0 0 0 3px rgba(20,184,166,0.22);
+  }
+  .ors-modal input[type="checkbox"] { accent-color: #14b8a6; width: 1.05rem; height: 1.05rem; border-radius: 0.3rem; }
+  .ors-modal input[type="range"] { accent-color: #14b8a6; }
+  .ors-modal .table { font-size: 0.8rem; }
+  .ors-modal .table thead th { font-size: 0.65rem; letter-spacing: 0.08em; color: #94a3b8; background: rgba(255,255,255,0.03); }
+  .ors-modal .table tbody tr { transition: background 0.12s; }
+  .ors-modal .table tbody tr:hover { background: rgba(20,184,166,0.07) !important; }
+  .ors-table-wrap { border-radius: 0.9rem; overflow-x: auto; overflow-y: visible; border: 1px solid rgba(148,163,184,0.14); }
+  .ors-modal .table td, .ors-modal .table th { vertical-align: middle; }
+  .ors-pill { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.1rem 0.55rem; border-radius: 999px; font-size: 0.68rem; font-weight: 700; white-space: nowrap; }
+  .ors-pill-id { background: rgba(255,255,255,0.06); color: #cbd5e1; font-family: ui-monospace, monospace; }
+  .ors-pill-ok { background: rgba(34,197,94,0.16); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+  .ors-pill-off { background: rgba(148,163,184,0.12); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.25); }
+  .ors-pill-teal { background: rgba(20,184,166,0.16); color: #5eead4; border: 1px solid rgba(20,184,166,0.3); }
+  .ors-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.72rem; color: #94a3b8; }
+  .ors-btn-ghost { padding: 0.3rem 0.65rem; border-radius: 0.55rem; font-size: 0.72rem; font-weight: 700; color: #e2e8f0; background: rgba(255,255,255,0.06); border: 1px solid rgba(148,163,184,0.18); }
+  .ors-btn-ghost:hover { background: rgba(20,184,166,0.18); border-color: rgba(20,184,166,0.4); }
+  .ors-btn-danger { padding: 0.3rem 0.65rem; border-radius: 0.55rem; font-size: 0.72rem; font-weight: 700; color: #fecaca; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35); }
+  .ors-btn-danger:hover { background: rgba(239,68,68,0.3); }
+  /* Kamera-Palette & Layout-Kacheln */
+  .room-source-card {
+    border-radius: 0.8rem; border: 1px solid rgba(148,163,184,0.16); background: rgba(15,23,42,0.75);
+    padding: 0.5rem; display: flex; flex-direction: column; gap: 0.3rem; cursor: grab; transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+  }
+  .room-source-card:hover { transform: translateY(-2px); border-color: rgba(20,184,166,0.5); box-shadow: 0 8px 20px rgba(0,0,0,0.35); }
+  .room-source-card:active { cursor: grabbing; }
+  .room-source-card .ors-thumb { aspect-ratio: 16/9; width: 100%; border-radius: 0.5rem; background: #020617; display: grid; place-items: center; overflow: hidden; color: #64748b; font-size: 0.65rem; }
+  .room-source-card .ors-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .room-layout-tile {
+    border-radius: 0.8rem; border: 1px dashed rgba(148,163,184,0.35); background: rgba(15,23,42,0.6);
+    padding: 0.45rem; display: flex; flex-direction: column; gap: 0.25rem; min-height: 0; transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+  }
+  .room-layout-tile.is-filled { border-style: solid; border-color: rgba(20,184,166,0.45); background: rgba(20,184,166,0.06); }
+  .room-layout-tile.ring { box-shadow: 0 0 0 3px rgba(20,184,166,0.5); border-color: #14b8a6; }
+  .room-layout-tile .ors-tile-img { flex: 1; min-height: 0; border-radius: 0.5rem; background: #020617; display: grid; place-items: center; overflow: hidden; color: #64748b; font-size: 0.65rem; }
+  .room-layout-tile .ors-tile-img img { width: 100%; height: 100%; object-fit: cover; }
+  .ors-preview-frame {
+    border-radius: 0.9rem; border: 1px solid rgba(148,163,184,0.14);
+    background: radial-gradient(ellipse at top, rgba(20,184,166,0.08), transparent 60%), #020617;
+  }
+  .ors-preview-frame.ors-preview-16x9 { aspect-ratio: 16/9; width: 100%; }
+  /* Räume: Liste links */
+  .ors-side { background: rgba(255,255,255,0.02); }
+  @media (min-width: 1280px) { .ors-side { position: sticky; top: 0; align-self: flex-start; } }
+
+/* ── ORS Systemseite ─────────────────────────────────────────────────── */
+.ors-page-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  padding: 1rem 1.25rem; border-radius: 1.25rem;
+  background: linear-gradient(90deg, rgba(20,184,166,0.16), rgba(14,165,233,0.08) 60%, rgba(255,255,255,0.02));
+  border: 1px solid rgba(148,163,184,0.16);
+}
+.ors-stat {
+  position: relative; border-radius: 1rem; padding: 1rem 1.1rem;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(148,163,184,0.12);
+}
+.ors-stat-label { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; }
+.ors-stat-value { font-size: 1.9rem; font-weight: 800; line-height: 1.1; margin-top: 0.25rem; color: #f8fafc; font-variant-numeric: tabular-nums; }
+.ors-stat-desc { font-size: 0.72rem; color: #94a3b8; margin-top: 0.15rem; overflow-wrap: anywhere; }
+.ors-stat progress { height: 0.45rem; margin-top: 0.6rem; }
+.ors-stat-icon { position: absolute; top: 0.8rem; right: 0.9rem; font-size: 1.15rem; opacity: 0.55; }
+.ors-terminal {
+  background: #020617; color: #cbd5e1; border: 1px solid rgba(148,163,184,0.16); border-radius: 0.9rem;
+  padding: 0.85rem 1rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.72rem; line-height: 1.45;
+  white-space: pre-wrap; overflow-y: auto; max-height: 26rem;
+  box-shadow: inset 0 0 0 1px rgba(20,184,166,0.08), inset 0 20px 40px rgba(0,0,0,0.35);
+}
+.ors-danger-zone { border-color: rgba(239,68,68,0.28) !important; background: linear-gradient(180deg, rgba(239,68,68,0.06), rgba(255,255,255,0.02)) !important; }
+.ors-action-btn { min-height: 4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; border-radius: 0.9rem; text-transform: none; line-height: 1.15; }
+.ors-action-btn small { font-size: 0.68rem; font-weight: 500; opacity: 0.85; }
+.ors-net-row { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.45rem 0.75rem; border-radius: 0.6rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.1); }

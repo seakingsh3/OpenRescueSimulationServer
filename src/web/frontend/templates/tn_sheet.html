@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teilnehmer-Notizblatt – OpenRescueSim</title>
+<link rel="icon" href="/ui/static/favicon.ico">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --salmon: #c8897a;
+    --salmon-light: #dba89b;
+    --salmon-dark: #b57265;
+    --border: #888;
+    --bg: #fff;
+    --text: #111;
+    --input-bg: #fafafa;
+    --font: 'Source Sans 3', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  body {
+    background: #d8d8d8;
+    font-family: var(--font);
+    font-size: 13px;
+    color: var(--text);
+    padding: 0 0 24px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* ── Toolbar (nicht Teil des Formulars) ── */
+  .toolbar {
+    position: sticky; top: 0; z-index: 50;
+    background: #1f2937; color: #f3f4f6;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    padding: 8px 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .toolbar .tb-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .toolbar .tb-title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .toolbar .tb-status { font-size: 11.5px; color: #cbd5e1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .badge-linked { background: #16a34a; color: #fff; }
+  .badge-ended  { background: #6b7280; color: #fff; }
+  .badge-free   { background: #374151; color: #e5e7eb; border: 1px solid #4b5563; }
+  .badge-save   { background: #0ea5e9; color: #fff; }
+  .badge-err    { background: #dc2626; color: #fff; }
+  .toolbar .tb-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tb-btn {
+    padding: 7px 12px; border: none; border-radius: 4px; cursor: pointer;
+    font-family: var(--font); font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+    background: var(--salmon); color: #fff; min-height: 34px;
+  }
+  .tb-btn:hover { background: var(--salmon-dark); }
+  .tb-btn.secondary { background: #374151; }
+  .tb-btn.secondary:hover { background: #4b5563; }
+  .tb-btn.danger { background: #a03030; }
+  .tb-btn.danger:hover { background: #7f1d1d; }
+  .tb-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .page {
+    background: var(--bg);
+    width: 210mm;
+    max-width: 100%;
+    min-height: 297mm;
+    margin: 16px auto 0;
+    padding: 12mm 12mm 10mm;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    position: relative;
+  }
+  @media (max-width: 820px) {
+    .page { width: 100%; min-height: 0; padding: 10px; margin-top: 8px; }
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    border: 1.5px solid var(--border);
+    padding: 6px 10px; margin-bottom: 8px; min-height: 46px;
+  }
+  .header > div:first-child { flex: 1; min-width: 0; }
+  .header-title { font-size: 14px; font-weight: 600; letter-spacing: 0.01em; }
+  .header-input {
+    width: 100%; border: none; border-bottom: 1px solid #ccc; background: transparent;
+    font-family: var(--font); font-size: 12px; padding: 3px 2px; outline: none; margin-top: 4px;
+  }
+  .header-input:focus { border-bottom-color: var(--salmon); background: #fff8f7; }
+  .org-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.03em; color: #c8342a;
+    text-align: right; white-space: nowrap; flex-shrink: 0;
+  }
+  .org-label small { display: block; color: #666; font-weight: 400; letter-spacing: 0; }
+
+  .section-header {
+    background: var(--salmon); color: #fff; font-weight: 700; font-size: 13px;
+    padding: 3px 8px; letter-spacing: 0.02em;
+  }
+
+  .main-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    border: 1.5px solid var(--border); border-top: none;
+  }
+  @media (max-width: 820px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .left-col { border-right: none !important; border-bottom: 1.5px solid var(--border); }
+  }
+  .left-col { border-right: 1.5px solid var(--border); display: flex; flex-direction: column; }
+  .right-col { display: flex; flex-direction: column; }
+
+  .abcde-block {
+    padding: 6px 8px; border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .abcde-label { font-weight: 700; font-size: 15px; color: #111; line-height: 1.2; }
+  .abcde-label span { font-weight: 400; font-size: 13px; }
+  .abcde-input, .sample-input, .verdacht-input, .mw-input, .trichter-input-area input, .leitsymptom-input {
+    border: none; border-bottom: 1px solid #ccc; background: transparent;
+    font-family: var(--font); font-size: 13px; color: var(--text);
+    padding: 4px 2px; outline: none; min-height: 28px; width: 100%; border-radius: 0;
+  }
+  .abcde-input:focus, .sample-input:focus, .verdacht-input:focus, .mw-input:focus,
+  .trichter-input-area input:focus, .leitsymptom-input:focus {
+    border-bottom-color: var(--salmon); background: #fff8f7;
+  }
+
+  .entscheidung-block { border-bottom: 1px solid var(--border); }
+  .entscheidung-inner { padding: 5px 8px; }
+  .leitsymptom-label { font-weight: 700; font-size: 12px; margin-bottom: 2px; }
+
+  .trichter-wrap { position: relative; padding: 4px 8px 8px; flex: 1; min-height: 150px; }
+  .trichter-label { text-align: center; font-weight: 700; font-size: 11.5px; margin-bottom: 4px; }
+  .trichter-svg {
+    position: absolute; top: 24px; left: 8px; right: 8px;
+    width: calc(100% - 16px); height: auto; opacity: 0.25; pointer-events: none;
+  }
+  .trichter-input-area {
+    position: relative; display: flex; flex-direction: column; gap: 2px; padding: 6px 12px 0;
+  }
+  .trichter-input-area input { font-size: 12px; min-height: 26px; border-bottom-color: #ddd; }
+
+  .sample-block, .opqrst-block, .messwerte-block { padding: 5px 8px 8px; border-bottom: 1px solid var(--border); }
+  .sample-row { display: flex; flex-direction: column; margin-bottom: 5px; }
+  .sample-row:last-child { margin-bottom: 0; }
+  .sample-key { font-weight: 700; font-size: 13px; line-height: 1.2; margin-bottom: 1px; }
+  .sample-key span { font-weight: 400; font-size: 12px; }
+
+  .messwerte-title, .untersuchung-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+  .messwerte-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; }
+  .mw-row { display: flex; align-items: center; gap: 4px; }
+  .mw-label { font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .mw-input { flex: 1; min-width: 0; width: auto; padding: 2px 2px; min-height: 26px; }
+  .mw-full { grid-column: 1 / -1; }
+
+  .untersuchung-block { padding: 5px 8px; flex: 1; }
+  textarea.area {
+    width: 100%; height: 80px; border: 1px solid #ccc; border-radius: 2px; background: var(--input-bg);
+    font-family: var(--font); font-size: 13px; padding: 5px 6px; outline: none; resize: vertical; color: var(--text);
+  }
+  textarea.area:focus { border-color: var(--salmon); background: #fff8f7; }
+
+  .auskunft-row { display: grid; grid-template-columns: 1fr 1fr; border-top: 1.5px solid var(--border); }
+  .auskunft-btn {
+    padding: 8px; font-weight: 700; font-size: 12px; text-align: center; cursor: pointer; user-select: none;
+    background: var(--salmon); color: #fff; border: none; min-height: 40px; font-family: var(--font);
+    transition: background 0.15s;
+  }
+  .auskunft-btn:hover { background: var(--salmon-dark); }
+  .auskunft-btn.active-ja { background: #5a9e6f; }
+  .auskunft-btn.active-nein { background: #a03030; }
+  .auskunft-btn + .auskunft-btn { border-left: 1.5px solid var(--border); }
+
+  .verdacht-row {
+    border: 1.5px solid var(--border); border-top: none; padding: 4px 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .verdacht-label { font-weight: 700; font-size: 12px; white-space: nowrap; }
+  .verdacht-input { flex: 1; width: auto; }
+
+  .severity-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    border: 1.5px solid var(--border); border-top: none;
+  }
+  .sev-item {
+    display: flex; align-items: center; gap: 6px; padding: 8px 10px; min-height: 40px;
+    background: var(--salmon-light); cursor: pointer; user-select: none; font-weight: 700; font-size: 12px;
+    border: none; border-right: 1.5px solid var(--border); font-family: var(--font); color: var(--text);
+    transition: background 0.15s; text-align: left;
+  }
+  .sev-item:last-child { border-right: none; }
+  .sev-item:hover { background: var(--salmon); color: #fff; }
+  .sev-item.active { background: var(--salmon); color: #fff; }
+  .sev-item.active .checkbox { border-color: #fff; background: #fff; }
+  .sev-item.active .checkbox::after { opacity: 1; }
+  .checkbox {
+    width: 14px; height: 14px; border: 2px solid #888; border-radius: 2px; background: #fff;
+    position: relative; flex-shrink: 0;
+  }
+  .checkbox::after {
+    content: ''; position: absolute; top: 1px; left: 3px; width: 5px; height: 8px;
+    border: 2px solid var(--salmon); border-top: none; border-left: none; transform: rotate(45deg); opacity: 0;
+  }
+
+  .therapie-row { border: 1.5px solid var(--border); border-top: none; padding: 5px 8px; }
+  .therapie-label { font-weight: 700; font-size: 12px; margin-bottom: 3px; }
+
+  .footer-note { text-align: center; font-size: 9px; color: #999; margin-top: 8px; }
+
+  /* Print-Modus: nur lesen */
+  body.mode-print input, body.mode-print textarea { background: transparent !important; }
+  body.mode-print .auskunft-btn, body.mode-print .sev-item { cursor: default; pointer-events: none; }
+
+  /* ── Modals ── */
+  .modal-bg {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 999;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 10px; padding: 24px 26px; text-align: center;
+    max-width: 380px; width: 100%; box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+  }
+  .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .modal p { font-size: 13px; color: #444; margin-bottom: 14px; line-height: 1.4; }
+  .modal .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .modal .tb-btn { min-width: 120px; }
+  #qrContainer { display: inline-block; border: 1px solid #eee; border-radius: 4px; padding: 8px; background: #fff; }
+  #qrContainer img { display: block; width: 220px; height: 220px; }
+  .link-box {
+    font-size: 11px; word-break: break-all; color: #333; background: #f3f4f6;
+    border-radius: 4px; padding: 6px 8px; margin-top: 10px;
+  }
+
+  .error-page {
+    max-width: 520px; margin: 60px auto; background: #fff; border-radius: 8px; padding: 28px; text-align: center;
+  }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar, .modal-bg, .no-print { display: none !important; }
+    .page { box-shadow: none; width: 100%; padding: 8mm; margin: 0; }
+    input, textarea { border-color: #bbb !important; }
+  }
+</style>
+</head>
+<body class="mode-{{ mode }}" data-token="{{ token }}" data-mode="{{ mode }}">
+
+<!-- Toolbar -->
+<div class="toolbar no-print" id="toolbar">
+  <div class="tb-left">
+    <div class="tb-title" id="tbTitle">Notizblatt wird geladen…</div>
+    <div class="tb-status" id="tbStatus"><span class="badge badge-free">nicht verknüpft</span></div>
+  </div>
+  <div class="tb-actions" id="tbActions">
+    <button class="tb-btn secondary" id="btnUnlink" style="display:none">Verknüpfung lösen</button>
+    <button class="tb-btn danger" id="btnReset">🗑 Zurücksetzen</button>
+    <button class="tb-btn" id="btnQr">📲 QR-Code zum Download</button>
+    <button class="tb-btn secondary" id="btnPrint">🖨 Drucken / PDF</button>
+    <button class="tb-btn secondary" id="btnSaveHtml" style="display:none">💾 Als HTML speichern</button>
+    <a class="tb-btn secondary" id="btnEdit" style="display:none;text-decoration:none" href="#">✏️ Bearbeiten</a>
+  </div>
+</div>
+
+<div class="error-page" id="errorPage" style="display:none">
+  <h2 style="font-size:18px;margin-bottom:8px">Notizblatt nicht gefunden</h2>
+  <p style="color:#555">Der Link ist ungültig oder das Blatt wurde vom Ausbilder gelöscht.</p>
+</div>
+
+<div class="page" id="sheetPage">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="header-title">Einsatzinformationen – Szene – Sicherheit – Situation</div>
+      <input type="text" class="header-input" data-field="einsatzinfo" data-label="Einsatzinformationen" placeholder="Einsatzinfo eingeben…">
+    </div>
+    <div class="org-label"><span id="sheetNameLabel">Notizblatt</span><small id="sheetDateLabel"></small></div>
+  </div>
+
+  <div class="section-header">Ersteinschätzung:</div>
+
+  <div class="main-grid">
+
+    <!-- LEFT -->
+    <div class="left-col">
+
+      <div class="abcde-block">
+        <div class="abcde-label"><b>A</b><span>temweg:</span></div>
+        <input class="abcde-input" type="text" data-field="abcde_a_1" data-label="A Atemweg">
+        <input class="abcde-input" type="text" data-field="abcde_a_2" data-label="A Atemweg (2)">
+      </div>
+      <div class="abcde-block">
+        <div class="abcde-label"><b>B</b><span>elüftung:</span></div>
+        <input class="abcde-input" type="text" data-field="abcde_b_1" data-label="B Belüftung">
+        <input class="abcde-input" type="text" data-field="abcde_b_2" data-label="B Belüftung (2)">
+      </div>
+      <div class="abcde-block">
+        <div class="abcde-label"><b>C</b><span>irkulation:</span></div>
+        <input class="abcde-input" type="text" data-field="abcde_c_1" data-label="C Cirkulation">
+        <input class="abcde-input" type="text" data-field="abcde_c_2" data-label="C Cirkulation (2)">
+      </div>
+      <div class="abcde-block">
+        <div class="abcde-label"><b>D</b><span>efizite neurologisch:</span></div>
+        <input class="abcde-input" type="text" data-field="abcde_d_1" data-label="D Defizite neurologisch">
+        <input class="abcde-input" type="text" data-field="abcde_d_2" data-label="D Defizite neurologisch (2)">
+      </div>
+      <div class="abcde-block" style="flex:1">
+        <div class="abcde-label"><b>E</b><span>ntkleiden/Entscheidung:</span></div>
+        <input class="abcde-input" type="text" data-field="abcde_e_1" data-label="E Entkleiden/Entscheidung">
+        <input class="abcde-input" type="text" data-field="abcde_e_2" data-label="E Entkleiden/Entscheidung (2)">
+      </div>
+
+      <div class="entscheidung-block">
+        <div class="section-header">Entscheidung:</div>
+        <div class="entscheidung-inner">
+          <div class="leitsymptom-label">Leitsymptom:</div>
+          <input type="text" class="leitsymptom-input" data-field="leitsymptom" data-label="Leitsymptom">
+        </div>
+      </div>
+
+      <div class="trichter-wrap">
+        <div class="trichter-label">Mögliche Differentialdiagnosen</div>
+        <svg class="trichter-svg" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="10,5 190,5 110,115 90,115" stroke="#555" stroke-width="2" fill="none"/>
+        </svg>
+        <div class="trichter-input-area">
+          <input type="text" placeholder="1." data-field="dd_1" data-label="Differentialdiagnose 1">
+          <input type="text" placeholder="2." data-field="dd_2" data-label="Differentialdiagnose 2">
+          <input type="text" placeholder="3." data-field="dd_3" data-label="Differentialdiagnose 3">
+          <input type="text" placeholder="4." data-field="dd_4" data-label="Differentialdiagnose 4">
+          <input type="text" placeholder="5." data-field="dd_5" data-label="Differentialdiagnose 5">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right-col">
+
+      <div class="sample-block">
+        <div class="sample-row">
+          <div class="sample-key"><b>S</b><span>ymptome (→ OPQRST)</span></div>
+          <input class="sample-input" type="text" data-field="sampler_s" data-label="S Symptome">
+        </div>
+        <div class="sample-row">
+          <div class="sample-key"><b>A</b><span>llergien:</span></div>
+          <input class="sample-input" type="text" data-field="sampler_a" data-label="A Allergien">
+        </div>
+        <div class="sample-row">
+          <div class="sample-key"><b>M</b><span>edikamente:</span></div>
+          <input class="sample-input" type="text" data-field="sampler_m" data-label="M Medikamente">
+        </div>
+        <div class="sample-row">
+          <div class="sample-key"><b>P</b><span>atientenvorgeschichte:</span></div>
+          <input class="sample-input" type="text" data-field="sampler_p" data-label="P Patientenvorgeschichte">
+        </div>
+        <div class="sample-row">
+          <div class="sample-key"><b>L</b><span>etzte Mahlzeit/Ausscheidung/Sexualanamnese:</span></div>
+          <input class="sample-input" type="text" data-field="sampler_l" data-label="L Letzte Mahlzeit/Ausscheidung">
+        </div>
+        <div class="sample-row">
+          <div class="sample-key"><b>E</b><span>reignisse vor dem Notfall:</span></div>
+          <input class="sample-input" type="text" data-field="sampler_e" data-label="E Ereignisse vor dem Notfall">
+        </div>
+        <div class="sample-row">
+          <div class="sample-key"><b>R</b><span>isikofaktoren:</span></div>
+          <input class="sample-input" type="text" data-field="sampler_r_1" data-label="R Risikofaktoren">
+          <input class="sample-input" type="text" data-field="sampler_r_2" data-label="R Risikofaktoren (2)" style="margin-top:2px;">
+        </div>
+      </div>
+
+      <div class="opqrst-block">
+        <div class="sample-row">
+          <div class="sample-key"><b>O</b><span>nset:</span></div>
+          <input class="sample-input" type="text" data-field="opqrst_o" data-label="O Onset">
+        </div>
+        <div class="sample-row">
+          <div class="sample-key"><b>P</b><span>alliation/Provocation:</span></div>
+          <input class="sample-input" type="text" data-field="opqrst_p" data-label="P Palliation/Provocation">
+        </div>
+        <div class="sample-row">
+          <div class="sample-key"><b>Q</b><span>ualität:</span></div>
+          <input class="sample-input" type="text" data-field="opqrst_q" data-label="Q Qualität">
+        </div>
+        <div class="sample-row">
+          <div class="sample-key"><b>R</b><span>egion/Radiation:</span></div>
+          <input class="sample-input" type="text" data-field="opqrst_r" data-label="R Region/Radiation">
+        </div>
+        <div class="sample-row">
+          <div class="sample-key"><b>S</b><span>chwere:</span></div>
+          <input class="sample-input" type="text" data-field="opqrst_s" data-label="S Schwere">
+        </div>
+        <div class="sample-row">
+          <div class="sample-key"><b>T</b><span>ime-Zeitverlauf:</span></div>
+          <input class="sample-input" type="text" data-field="opqrst_t" data-label="T Zeitverlauf">
+        </div>
+      </div>
+
+      <div class="messwerte-block">
+        <div class="messwerte-title">Messwerte</div>
+        <div class="messwerte-grid">
+          <div class="mw-row"><span class="mw-label">Af:</span><input class="mw-input" type="text" data-field="mw_af" data-label="Af"></div>
+          <div class="mw-row"><span class="mw-label">S<sub>p</sub>O<sub>2</sub>:</span><input class="mw-input" type="text" data-field="mw_spo2" data-label="SpO2"></div>
+          <div class="mw-row"><span class="mw-label">Puls:</span><input class="mw-input" type="text" data-field="mw_puls" data-label="Puls"></div>
+          <div class="mw-row"><span class="mw-label">RR:</span><input class="mw-input" type="text" data-field="mw_rr" data-label="RR"></div>
+          <div class="mw-row mw-full"><span class="mw-label">EKG:</span><input class="mw-input" type="text" data-field="mw_ekg" data-label="EKG"></div>
+          <div class="mw-row"><span class="mw-label">Blutzucker:</span><input class="mw-input" type="text" data-field="mw_bz" data-label="Blutzucker"></div>
+          <div class="mw-row"><span class="mw-label">Temperatur:</span><input class="mw-input" type="text" data-field="mw_temp" data-label="Temperatur"></div>
+          <div class="mw-row mw-full"><span class="mw-label">Sonstiges:</span><input class="mw-input" type="text" data-field="mw_sonst" data-label="Sonstige Messwerte"></div>
+        </div>
+      </div>
+
+      <div class="untersuchung-block">
+        <div class="untersuchung-title">Untersuchung:</div>
+        <textarea class="area" data-field="untersuchung" data-label="Untersuchung" placeholder="Befunde …"></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- AUSKUNFTSFÄHIG -->
+  <div class="auskunft-row" data-choice-group="auskunft" data-label="Auskunftsfähig">
+    <button type="button" class="auskunft-btn" data-choice="Auskunftsfähig" data-active-class="active-ja">Auskunftsfähig</button>
+    <button type="button" class="auskunft-btn" data-choice="Nicht auskunftsfähig" data-active-class="active-nein">Nicht Auskunftsfähig</button>
+  </div>
+
+  <div class="verdacht-row">
+    <span class="verdacht-label">Verdachtsdiagnose:</span>
+    <input class="verdacht-input" type="text" data-field="verdacht" data-label="Verdachtsdiagnose">
+  </div>
+
+  <div class="severity-row" data-choice-group="severity" data-label="Einschätzung">
+    <button type="button" class="sev-item" data-choice="Lebensbedroht" data-active-class="active"><span class="checkbox"></span>Lebensbedroht</button>
+    <button type="button" class="sev-item" data-choice="Ernsthaft krank" data-active-class="active"><span class="checkbox"></span>Ernsthaft krank</button>
+    <button type="button" class="sev-item" data-choice="Unkritisch" data-active-class="active"><span class="checkbox"></span>Unkritisch</button>
+  </div>
+
+  <div class="therapie-row">
+    <div class="therapie-label">Therapie:</div>
+    <textarea class="area" style="height:64px" data-field="therapie" data-label="Therapie" placeholder="Maßnahmen …"></textarea>
+  </div>
+
+  <div class="footer-note">
+    Teilnehmer-Notizblatt · OpenRescueSim · Fachlich basierend auf dem AMLS-Schema (Advanced Medical Life Support),
+    Lehrkonzept der NAEMT (National Association of Emergency Medical Technicians)
+  </div>
+
+</div>
+
+<!-- Session-Popup -->
+<div class="modal-bg" id="sessionModal">
+  <div class="modal">
+    <h3>Neue Simulation gestartet</h3>
+    <p id="sessionModalText">Soll dieses Notizblatt mit der Simulation verknüpft werden? Deine Einträge erscheinen dann live in der Marker-Liste des Ausbilders.</p>
+    <div class="row">
+      <button class="tb-btn" id="sessionLinkYes">Ja, verknüpfen</button>
+      <button class="tb-btn secondary" id="sessionLinkNo">Nein</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset-Bestätigung -->
+<div class="modal-bg" id="resetModal">
+  <div class="modal">
+    <h3>Formular zurücksetzen?</h3>
+    <p>Alle Eingaben auf diesem Notizblatt werden gelöscht. Bereits gesetzte Marker bleiben erhalten.</p>
+    <div class="row">
+      <button class="tb-btn danger" id="resetYes">Ja, löschen</button>
+      <button class="tb-btn secondary" id="resetNo">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR-Modal -->
+<div class="modal-bg" id="qrModal">
+  <div class="modal">
+    <h3>QR-Code zum Download</h3>
+    <p>Mit dem Smartphone scannen, um das ausgefüllte Formular zu öffnen, zu drucken oder als PDF/HTML zu speichern.</p>
+    <div id="qrContainer"></div>
+    <div class="link-box" id="qrLink"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="tb-btn secondary" id="qrClose">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<script src="/ui/static/js/tn_sheet.js"></script>
+</body>
+</html>

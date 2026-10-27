@@ -1,0 +1,5 @@
+# /etc/sudoers.d/openresquesim – mitgeliefert vom Paket openresquesim-server.
+# Nur nötig, wenn der Dienst NICHT als root läuft (Benutzer openresquesim): erlaubt genau
+# den Aufruf, mit dem die Systemseite HTTPS einrichtet (src/https_admin.rs), sonst nichts.
+# Argumente nach dem Skript sind Hostnamen/IPs, die der Server vorher prüft.
+openresquesim ALL=(root) NOPASSWD: /usr/bin/systemd-run --unit ors-https-setup --collect --quiet -p StandardOutput=append\:/var/log/openresquesim-https-setup.log -p StandardError=append\:/var/log/openresquesim-https-setup.log /usr/share/openresquesim/scripts/setup_https.sh *

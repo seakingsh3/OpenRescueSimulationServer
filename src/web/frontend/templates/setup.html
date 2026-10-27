@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+  <div class="card bg-base-200 shadow-xl border border-base-300">
+    <div class="card-body space-y-2">
+      <h1 class="text-2xl font-bold">Erstinstallation</h1>
+      <p class="text-sm text-base-content/70">
+        Bitte trage die Grundkonfiguration ein. Nach dem Abschluss wirst du in die normale UI weitergeleitet.
+      </p>
+    </div>
+  </div>
+
+  <form id="setupForm" class="space-y-6">
+    <div class="card bg-base-200 shadow-xl border border-base-300">
+      <div class="card-body space-y-4">
+        <h2 class="text-xl font-semibold">Admin & Sicherheit</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label class="form-control">
+            <span class="label-text">Admin Benutzername</span>
+            <input id="adminUsername" type="text" class="input input-bordered" placeholder="admin">
+          </label>
+          <label class="form-control">
+            <span class="label-text">Admin Passwort</span>
+            <input id="adminPassword" type="password" class="input input-bordered" placeholder="Passwort">
+          </label>
+          <label class="form-control md:col-span-2">
+            <span class="label-text">Auth Secret (JWT)</span>
+            <div class="flex gap-2">
+              <input id="authSecret" type="text" class="input input-bordered flex-1" placeholder="z.B. zufälliger Schlüssel">
+              <button id="authSecretGen" type="button" class="btn btn-outline">Generieren</button>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card bg-base-200 shadow-xl border border-base-300">
+      <div class="card-body space-y-4">
+        <h2 class="text-xl font-semibold">Aufnahme & Ausgabe</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <label class="form-control">
+            <span class="label-text">Recording aktiv</span>
+            <input id="recordEnabled" type="checkbox" class="toggle toggle-primary">
+          </label>
+          <label class="form-control">
+            <span class="label-text">Container</span>
+            <select id="recordFormat" class="select select-bordered">
+              <option value="mkv">mkv</option>
+              <option value="mp4">mp4</option>
+              <option value="mov">mov</option>
+            </select>
+          </label>
+          <label class="form-control">
+            <span class="label-text">Segmentlänge (Sek.)</span>
+            <input id="recordSegmentSecs" type="number" min="1" class="input input-bordered">
+          </label>
+          <label class="form-control">
+            <span class="label-text">Max. Dateien (0 = unbegrenzt)</span>
+            <input id="recordMaxFiles" type="number" class="input input-bordered">
+          </label>
+          <label class="form-control">
+            <span class="label-text">Dateiprefix</span>
+            <input id="recordPrefix" type="text" class="input input-bordered">
+          </label>
+          <label class="form-control">
+            <span class="label-text">Aufnahmeverzeichnis</span>
+            <input id="recordDir" type="text" class="input input-bordered">
+          </label>
+          <label class="form-control">
+            <span class="label-text">Audio Device</span>
+            <input id="audioDevice" type="text" class="input input-bordered" placeholder="default">
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card bg-base-200 shadow-xl border border-base-300">
+      <div class="card-body space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold">Marker-Typen</h2>
+          <button id="addMarkerType" type="button" class="btn btn-outline">+ Hinzufügen</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Farbe</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="markerTypesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card bg-base-200 shadow-xl border border-base-300">
+      <div class="card-body space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold">Textbausteine (Marker-Notizen)</h2>
+          <button id="addMarkerNote" type="button" class="btn btn-outline">+ Hinzufügen</button>
+        </div>
+        <div id="markerNotesList" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <div class="card bg-base-200 shadow-xl border border-base-300">
+      <div class="card-body space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold">Kameras</h2>
+          <button id="addCamera" type="button" class="btn btn-outline">+ Hinzufügen</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>URL</th>
+                <th>FOV (Grad)</th>
+                <th>Aktiv</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="camerasBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <button id="setupSubmit" type="submit" class="btn btn-primary">Setup abschließen</button>
+      <span id="setupStatus" class="text-sm text-base-content/70"></span>
+    </div>
+  </form>
+</div>
+
+<script src="/static/js/setup.js" type="module"></script>
+{% endblock %}

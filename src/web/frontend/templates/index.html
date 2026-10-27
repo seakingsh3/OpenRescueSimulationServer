@@ -1,0 +1,94 @@
+
+{% extends "base.html" %}
+{% block content %}
+<style>
+  /* Dashboard-Kachelbilder: feste Zielgröße statt w-full, sonst blähen sich die
+     1024x1024-Logos auf schmalen Bildschirmen (iPad Mini, Hochformat) auf volle
+     Kartenbreite auf. */
+  .dash-tile-icon { width: 4.5rem; height: 4.5rem; }
+  @media (min-width: 640px) { .dash-tile-icon { width: 5.5rem; height: 5.5rem; } }
+  @media (min-width: 1024px) { .dash-tile-icon { width: 6.5rem; height: 6.5rem; } }
+</style>
+<h1 class="text-2xl font-bold mb-6"></h1>
+
+<div class="rounded-3xl border border-base-300 bg-base-200/60 p-6 shadow-xl"
+     style="background-image: url('/static/img/bg_low_poly_alone.png'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+  <!-- Simulation -->
+  <a href="/ui/simulate" class="card bg-base-200 shadow-xl hover:shadow-2xl border border-base-300 transition">
+    <div class="card-body items-center text-center gap-3 p-4 sm:p-6">
+      <img src="/ui/static/img/record_logo.png" alt="Simulation" class="dash-tile-icon object-contain rounded">
+      <div class="text-sm sm:text-lg font-semibold">Simulation</div>
+    </div>
+  </a>
+
+  <!-- Debriefing -->
+  <a href="/ui/debrief" class="card bg-base-200 shadow-xl hover:shadow-2xl border border-base-300 transition">
+    <div class="card-body items-center text-center gap-3 p-4 sm:p-6">
+      <img src="/ui/static/img/debriefing_logo.png" alt="Debriefing" class="dash-tile-icon object-contain rounded">
+      <div class="text-sm sm:text-lg font-semibold">Debriefing</div>
+    </div>
+  </a>
+
+  <!-- Einstellungen -->
+  <a href="/ui/options/system" class="card bg-base-200 shadow-xl hover:shadow-2xl border border-base-300 transition">
+    <div class="card-body items-center text-center gap-3 p-4 sm:p-6">
+      <img src="/ui/static/icons/tile-settings.svg" alt="System &amp; Einstellungen" class="dash-tile-icon object-contain rounded">
+      <div class="text-sm sm:text-lg font-semibold">System &amp; Einstellungen</div>
+    </div>
+  </a>
+
+  <a href="/ui/participants" class="card bg-base-200 shadow-xl hover:shadow-2xl border border-base-300 transition">
+    <div class="card-body items-center text-center gap-3 p-4 sm:p-6">
+      <img src="/ui/static/icons/tile-participants.svg" alt="Teilnehmer-Notizblätter" class="dash-tile-icon object-contain rounded p-2">
+      <div class="text-sm sm:text-lg font-semibold">Teilnehmer-Notizblätter</div>
+    </div>
+  </a>
+
+  <a href="/viewer/1" target="_blank" class="card bg-base-200 shadow-xl hover:shadow-2xl border border-base-300 transition">
+    <div class="card-body items-center text-center gap-3 p-4 sm:p-6">
+      <img src="/ui/static/icons/tile-viewer.svg" alt="Zuschauer Viewer" class="dash-tile-icon object-contain rounded">
+      <div class="text-sm sm:text-lg font-semibold">Zuschauer Viewer</div>
+    </div>
+  </a>
+
+  <a href="/ui/viewer_qr" class="card bg-base-200 shadow-xl hover:shadow-2xl border border-base-300 transition">
+    <div class="card-body items-center text-center gap-3 p-4 sm:p-6">
+      <img src="/ui/static/icons/tile-qr.svg" alt="Zuschauer QR" class="dash-tile-icon object-contain rounded">
+      <div class="text-sm sm:text-lg font-semibold">Zuschauer QR</div>
+    </div>
+  </a>
+
+  <a href="/ui/camera-control" class="card bg-base-200 shadow-xl hover:shadow-2xl border border-base-300 transition">
+    <div class="card-body items-center text-center gap-3 p-4 sm:p-6">
+      <img src="/ui/static/icons/tile-camera.svg" alt="Kamerasteuerung" class="dash-tile-icon object-contain rounded p-2">
+      <div class="text-sm sm:text-lg font-semibold">Kamerasteuerung</div>
+    </div>
+  </a>
+
+  <a href="/help/" target="_blank" rel="noopener" class="card bg-base-200 shadow-xl hover:shadow-2xl border border-base-300 transition">
+    <div class="card-body items-center text-center gap-3 p-4 sm:p-6">
+      <img src="/static/icons/tile-help.svg" alt="Hilfe" class="dash-tile-icon object-contain rounded p-2">
+      <div class="text-sm sm:text-lg font-semibold">Hilfe</div>
+    </div>
+  </a>
+
+
+  <div class="card col-span-2 sm:col-span-3 lg:col-span-4 bg-base-200/80 border border-base-300 shadow-xl mt-2">
+    <div class="card-body flex flex-col md:flex-row items-center gap-6">
+      <!-- Bild -->
+      <img src="/ui/static/img/dev.png" alt="Dev" class="w-24 h-24 object-contain rounded-full shrink-0">
+
+      <!-- Zitatblock -->
+      <blockquote class="italic border-l-4 border-primary pl-4 text-base-content/80">
+        <p>
+          „Dieses Interface wurde unter Koffein und Halbwissen erschaffen – und läuft trotzdem erstaunlich gut.<br>
+          Kein Plan? Kein Problem. Einfach klicken, als hättest du Ahnung.“
+        </p>
+        <footer class="mt-2 text-sm text-primary">– das Entwicklerteam, 3 Uhr nachts mit Energy in der Hand</footer>
+      </blockquote>
+    </div>
+  </div>
+  </div>
+</div>
+{% endblock %}

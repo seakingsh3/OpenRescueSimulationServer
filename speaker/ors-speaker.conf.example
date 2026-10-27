@@ -1,0 +1,24 @@
+# /etc/ors-speaker.conf – Raumlautsprecher für OpenRescueSim „Voice of Room“
+[speaker]
+# Adresse des OpenRescueSim-Servers (Host:Port, ohne http://)
+server = 192.168.1.10:8393
+# Anzeigename beim ersten Anmelden (danach in der Web-Oberfläche änderbar)
+name = Simraum 1
+# Lautsprecher-Gruppe beim ersten Anmelden (danach in der Web-Oberfläche änderbar)
+group = default
+# UDP-Port, auf dem RTP/Opus empfangen wird
+rtp_port = 5004
+# ALSA-Ausgabegerät: default, hw:0, plughw:1,0 … (aplay -l zeigt die Karten)
+alsa_device = default
+# Startlautstärke 0..100 (wird vom Server überschrieben, sobald dort ein Wert gepflegt ist)
+volume = 80
+# Heartbeat-Intervall in Sekunden
+heartbeat_s = 5
+# Jitterbuffer in Millisekunden (höher = robuster, mehr Verzögerung)
+jitter_ms = 60
+# Optionale Status-LED an GPIO (BCM-Nummer), leer = keine LED
+led_gpio =
+# Darf der Server das Gerät neu starten?
+allow_reboot = yes
+# wss statt ws verwenden (Server mit TLS)
+tls = no

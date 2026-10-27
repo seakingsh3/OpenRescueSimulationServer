@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenRescueSim Pager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/pager/pager.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="status-bar">
+        <div id="status-indicator" class="status-indicator status-disconnected"></div>
+        <span id="status-text" class="status-text">Getrennt</span>
+        <span class="status-spacer"></span>
+        <span id="pager-id" class="pager-id">Pager</span>
+      </header>
+
+      <main class="pager-main">
+        <section class="card">
+          <h1 class="title">📢 Pager</h1>
+          <p class="subtitle">Empfängt Durchsagen (Audio-only) vom Paging-Server.</p>
+
+          <div class="actions">
+            <button id="btn-connect" class="btn btn-primary">Verbinden</button>
+            <button id="btn-disconnect" class="btn">Trennen</button>
+            <button id="btn-mute" class="btn">🔇 Mute</button>
+          </div>
+
+          <div class="pill" id="pill-state">IDLE</div>
+          <div class="pill" id="pill-audio">Audio: --</div>
+
+          <audio id="audio" hidden></audio>
+
+          <pre id="log" class="log"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/js/device_pairing.js"></script>
+    <script src="/pager/pager.js"></script>
+  </body>
+</html>

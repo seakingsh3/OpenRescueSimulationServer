@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Verbindungsverlust-Overlay (per JS ein-/ausgeblendet) -->
+  <div id="systemReconnectOverlay" class="fixed inset-0 hidden bg-black/75 z-50" style="backdrop-filter: blur(4px);">
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="ors-shell text-center space-y-4 p-6" style="max-width: 36rem; height: auto;">
+        <img src="/static/img/404.png" alt="Verbindung verloren" class="w-full max-w-md mx-auto rounded-xl border border-white/10">
+        <div class="text-lg font-bold text-white">Verbindung zum Server verloren</div>
+        <div id="systemReconnectReason" class="text-sm text-gray-300">Bitte warten, die Verbindung wird wiederhergestellt…</div>
+        <div id="systemReconnectCountdown" class="text-3xl font-mono text-emerald-300 hidden">20</div>
+      </div>
+    </div>
+  </div>
+
+  {% include "options_nav.html" %}
+
+  <!-- Kopf -->
+  <div class="ors-page-head">
+    <div class="ors-head-title">
+      <div class="ors-head-icon">🖥️</div>
+      <div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-white leading-tight">Systemstatus</h1>
+        <div class="text-xs text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
+          Live-Werte des Servers
+          <span class="ors-pill ors-pill-id">Version <span id="serverVersion" class="ml-1">-</span></span>
+        </div>
+      </div>
+    </div>
+    <button id="refreshSystemBtn" class="btn btn-sm btn-outline">↻ Aktualisieren</button>
+  </div>
+
+  <div id="systemError" class="hidden alert alert-error text-sm">
+    <span>Keine Daten von /api/system/stats.</span>
+  </div>
+  <div id="systemMessage" class="hidden alert text-sm"></div>
+
+  <!-- Kennzahlen -->
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="ors-stat">
+      <span class="ors-stat-icon">⚙️</span>
+      <div class="ors-stat-label">CPU</div>
+      <div class="ors-stat-value" id="cpuUsage">-</div>
+      <div class="ors-stat-desc">Last: <span id="loadAvg">-</span></div>
+      <div class="flex justify-between text-[11px] text-gray-400 mt-2"><span>Auslastung</span><span id="cpuUsageDetail">-</span></div>
+      <progress id="cpuBar" class="progress progress-primary w-full" value="0" max="100"></progress>
+    </div>
+    <div class="ors-stat">
+      <span class="ors-stat-icon">🧠</span>
+      <div class="ors-stat-label">RAM</div>
+      <div class="ors-stat-value" id="memUsage">-</div>
+      <div class="ors-stat-desc">Frei: <span id="memFree">-</span></div>
+      <div class="flex justify-between text-[11px] text-gray-400 mt-2"><span>Belegt</span><span id="memUsageDetail">-</span></div>
+      <progress id="memBar" class="progress progress-secondary w-full" value="0" max="100"></progress>
+    </div>
+    <div class="ors-stat">
+      <span class="ors-stat-icon">💾</span>
+      <div class="ors-stat-label">Disk</div>
+      <div class="ors-stat-value" id="diskUsage">-</div>
+      <div class="ors-stat-desc" id="diskPath">-</div>
+      <div class="flex justify-between text-[11px] text-gray-400 mt-2"><span>Belegt</span><span id="diskUsageDetail">-</span></div>
+      <progress id="diskBar" class="progress progress-accent w-full" value="0" max="100"></progress>
+    </div>
+    <div class="ors-stat">
+      <span class="ors-stat-icon">⏱️</span>
+      <div class="ors-stat-label">Uptime</div>
+      <div class="ors-stat-value" id="uptime">-</div>
+      <div class="ors-stat-desc">Threads: <span id="threads">-</span></div>
+      <div class="text-[11px] text-gray-500 mt-3">Laufzeit seit dem letzten Start des Servers.</div>
+    </div>
+  </div>
+
+  <!-- Netzwerk · RTMP · Aktionen -->
+  <div class="grid gap-4 lg:grid-cols-3">
+    <section class="ors-section">
+      <div class="ors-section-head">
+        <div class="ors-section-title">🌐 Netzwerk</div>
+        <span class="ors-hint">Σ seit Start</span>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div class="rounded-xl bg-black/30 border border-white/10 p-3">
+          <div class="ors-stat-label">Tx gesamt</div>
+          <div id="netTx" class="text-lg font-bold text-white">-</div>
+        </div>
+        <div class="rounded-xl bg-black/30 border border-white/10 p-3 text-right">
+          <div class="ors-stat-label">Rx gesamt</div>
+          <div id="netRx" class="text-lg font-bold text-white">-</div>
+        </div>
+      </div>
+      <div id="netList" class="space-y-2 text-sm"></div>
+    </section>
+
+    <section class="ors-section">
+      <div class="ors-section-head">
+        <div class="ors-section-title">📡 Externer Verteiler (RTMP)</div>
+        <span id="rtmpState" class="ors-pill ors-pill-off">-</span>
+      </div>
+      <div class="space-y-2 text-sm text-gray-400">
+        <div>
+          <div class="ors-stat-label">Ziel</div>
+          <div id="rtmpUrl" class="ors-mono break-all text-gray-200">-</div>
+        </div>
+        <div>
+          <div class="ors-stat-label">Letztes Update</div>
+          <div id="rtmpUpdated" class="text-gray-200">-</div>
+        </div>
+      </div>
+      <div id="rtmpError" class="text-xs text-error mt-2 hidden"></div>
+      <p class="ors-hint mt-3">Optional: leitet das Live-Bild während einer Session an einen Streaming-Server weiter. Konfiguration unter Einstellungen → Aufnahme &amp; Ausgabe.</p>
+    </section>
+
+    <section class="ors-section ors-danger-zone">
+      <div class="ors-section-head">
+        <div class="ors-section-title">⚠️ Systemaktionen</div>
+        <span class="ors-pill ors-pill-off">Admin</span>
+      </div>
+      <p class="ors-hint mb-3">Wirken auf den ganzen Rechner bzw. den Dienst. Laufende Sessions werden beendet.</p>
+      <div class="grid gap-2">
+        <button id="restartServiceBtn" class="btn btn-warning btn-outline ors-action-btn w-full">
+          <span>🔁 Systemdienst neu starten</span>
+          <small>nur die App, Rechner läuft weiter</small>
+        </button>
+        <button id="rebootBtn" class="btn btn-warning ors-action-btn w-full">
+          <span>🔄 Server neu starten</span>
+          <small>kompletter Neustart des Rechners</small>
+        </button>
+        <button id="poweroffBtn" class="btn btn-error ors-action-btn w-full">
+          <span>⏻ Server herunterfahren</span>
+          <small>danach manuell einschalten</small>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Logs -->
+  <section class="ors-section">
+    <div class="ors-section-head">
+      <div class="ors-section-title">🧾 Service-Logs</div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span id="systemLogsMeta" class="ors-hint">Logdatei</span>
+        <button id="systemLogFilesBtn" class="btn btn-xs btn-outline hidden">📁 Dateien</button>
+        <button id="systemQuickMailBtn" class="btn btn-xs btn-outline">✉️ Log per Mail</button>
+        <button id="systemChangesBtn" class="btn btn-xs btn-primary">📝 Updates anzeigen</button>
+      </div>
+    </div>
+    <pre id="systemLogs" class="ors-terminal">Lade Logs…</pre>
+    <p class="ors-hint mt-2">Quelle: journald (Unit per ENV ORS_JOURNAL_UNIT/ORS_SYSTEMD_UNIT, sonst Default). Live-Aktualisierung über WebSocket.</p>
+  </section>
+
+  <!-- HTTPS (nur Admin) -->
+  <section id="systemHttps" class="ors-section hidden">
+    <div class="ors-section-head">
+      <div class="ors-section-title">🔒 HTTPS</div>
+      <span id="httpsBadge" class="badge badge-ghost">…</span>
+    </div>
+    <p class="text-sm text-gray-300">Mikrofon (Durchsagen) und manche Tablet-Funktionen gibt der Browser nur über HTTPS frei. Der Server nutzt dafür eine eigene, lokale Zertifizierungsstelle; ihr Wurzelzertifikat wird einmal auf jedem Ausbilder-Gerät installiert.</p>
+    <div id="httpsCert" class="text-sm text-gray-300 mt-2"></div>
+
+    <div class="grid md:grid-cols-[1fr_auto] gap-4 mt-3 items-start">
+      <div class="space-y-2">
+        <h3 class="font-semibold text-gray-100">Wurzelzertifikat für iPads und PCs</h3>
+        <div id="httpsCaMissing" class="ors-hint hidden">Noch kein Wurzelzertifikat – zuerst HTTPS einrichten.</div>
+        <div id="httpsCaBox" class="space-y-2 hidden">
+          <a id="httpsCaDownload" class="btn btn-sm btn-primary" href="/ca/ors-rootCA.crt" download="ors-rootCA.crt">⬇️ Wurzelzertifikat herunterladen</a>
+          <ul class="list-disc pl-5 text-xs text-gray-400 space-y-1">
+            <li><b>iPad/iPhone:</b> QR-Code scannen → Profil laden → Einstellungen → „Profil geladen“ → Installieren. Danach Allgemein → Info → Zertifikatsvertrauen einschalten.</li>
+            <li><b>Windows:</b> Datei öffnen → Zertifikat installieren → Lokaler Computer → „Vertrauenswürdige Stammzertifizierungsstellen“.</li>
+            <li><b>Android:</b> Einstellungen → Sicherheit → Verschlüsselung → Zertifikat installieren → CA-Zertifikat.</li>
+          </ul>
+        </div>
+      </div>
+      <img id="httpsCaQr" alt="QR-Code zum Wurzelzertifikat" class="w-36 h-36 bg-white rounded p-1 hidden">
+    </div>
+
+    <div class="mt-4 space-y-2">
+      <h3 class="font-semibold text-gray-100">Einrichten / Zertifikat erneuern</h3>
+      <label class="block text-xs text-gray-400">Zusätzliche Namen oder IP-Adressen (optional, durch Komma getrennt). Ohne Angabe: Rechnername, <code>&lt;Rechnername&gt;.local</code> und alle IP-Adressen des Servers.</label>
+      <input id="httpsNames" class="input input-sm input-bordered w-full font-mono" placeholder="z.B. ors.local, 192.168.1.20">
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="httpsSetupBtn" class="btn btn-sm btn-warning">🔒 HTTPS einrichten / erneuern</button>
+        <span id="httpsReason" class="ors-hint"></span>
+      </div>
+      <p class="ors-hint">Der Server startet danach neu (laufende Sessions werden unterbrochen). Das Serverzertifikat gilt 825 Tage; das Wurzelzertifikat bleibt beim Erneuern gleich, Geräte müssen es nicht neu installieren.</p>
+      <pre id="httpsLog" class="ors-terminal hidden" style="max-height: 18rem;"></pre>
+    </div>
+  </section>
+
+  <!-- Über & Lizenzen -->
+  <section id="systemAbout" class="ors-section">
+    <div class="ors-section-head">
+      <div class="ors-section-title">ℹ️ Über OpenRescueSim &amp; Lizenzen</div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <a class="btn btn-xs btn-outline" href="/licenses/gpl" target="_blank" rel="noopener">GPLv3 lesen</a>
+        <a class="btn btn-xs btn-outline" href="/licenses/third-party" target="_blank" rel="noopener">Alle Lizenztexte</a>
+      </div>
+    </div>
+    <p class="text-sm text-gray-300">OpenRescueSim ist freie Software unter der <b>GNU General Public License v3</b>: Sie darf genutzt, weitergegeben und verändert werden; Änderungen müssen unter derselben Lizenz weitergegeben werden.</p>
+    <div class="overflow-x-auto mt-2">
+      <table class="table table-sm">
+        <thead><tr><th>Bestandteil</th><th>Wofür</th><th>Lizenz</th></tr></thead>
+        <tbody>
+          <tr><td>Bilder, Illustrationen, Logos</td><td>Oberfläche – eigene Werke des Projekts (teils KI-unterstützt)</td><td>GPLv3 (wie das Projekt)</td></tr>
+          <tr><td><a class="link" href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a></td><td>Icons</td><td>ISC</td></tr>
+          <tr><td><a class="link" href="https://tailwindcss.com" target="_blank" rel="noopener">Tailwind CSS</a> &amp; <a class="link" href="https://daisyui.com" target="_blank" rel="noopener">daisyUI</a></td><td>Gestaltung der Oberfläche</td><td>MIT</td></tr>
+          <tr><td><a class="link" href="https://gstreamer.freedesktop.org" target="_blank" rel="noopener">GStreamer</a>, <a class="link" href="https://ffmpeg.org" target="_blank" rel="noopener">FFmpeg</a></td><td>Video, Ton, Aufnahme, Streaming (aus dem Betriebssystem)</td><td>LGPL / GPL</td></tr>
+          <tr><td>Rust-Bibliotheken (axum, tokio, sqlx, gstreamer-rs u.a.)</td><td>Server</td><td>MIT / Apache-2.0 u.a.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="ors-hint mt-2">Vollständige Liste mit Lizenztexten: „Alle Lizenztexte“ bzw. <code>THIRD_PARTY_NOTICES.md</code> im Quellcode.</p>
+  </section>
+
+</div>
+
+<!-- Logdateien (Admin) -->
+<div id="systemLogFilesModal" class="ors-modal hidden">
+  <div class="ors-shell" style="max-width: 52rem; height: auto;">
+    <div class="ors-head">
+      <div class="ors-head-title">
+        <div class="ors-head-icon">📁</div>
+        <div>
+          <h2>Logdateien</h2>
+          <div class="ors-sub">Tägliche Logdateien herunterladen oder als Mail-Entwurf verschicken.</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="systemLogFilesRefreshBtn" class="btn btn-xs btn-outline">↻</button>
+        <button id="systemLogFilesCloseBtn" class="ors-close" title="Schließen">✕</button>
+      </div>
+    </div>
+    <div class="ors-body p-4 md:p-6 space-y-4">
+      <div class="ors-section">
+        <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2 items-end">
+          <label class="block">
+            <span class="ors-label">E‑Mail-Empfänger</span>
+            <input id="systemLogMailTo" type="email" class="w-full" placeholder="deine.mail@beispiel.de" />
+          </label>
+          <button id="systemLogMailSaveBtn" class="btn btn-sm btn-outline">E‑Mail speichern</button>
+        </div>
+        <p class="ors-hint mt-2">Der Browser kann keine Anhänge setzen. Es öffnet sich ein Mail-Entwurf mit Logauszug, die Datei bitte danach anhängen.</p>
+      </div>
+      <div id="systemLogFilesList" class="space-y-2 text-sm text-gray-200">
+        <div class="text-gray-500 text-xs">Lade Dateien…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Logdatei als QR-Code (kein Netzwerk beim Empfänger nötig) -->
+<div id="systemLogQrModal" class="ors-modal hidden" style="z-index: 100001;">
+  <div class="ors-shell" style="max-width: 28rem;">
+    <div class="ors-head">
+      <div class="ors-head-title">
+        <div class="ors-head-icon">📱</div>
+        <div>
+          <h2>Logauszug als QR-Code</h2>
+          <div class="ors-sub">Zum Abfotografieren — funktioniert ohne Netzwerk/LAN beim Empfänger.</div>
+        </div>
+      </div>
+      <button id="systemLogQrCloseBtn" class="ors-close" title="Schließen">✕</button>
+    </div>
+    <div class="ors-body p-4 md:p-6 space-y-4 text-center">
+      <label class="flex items-center justify-center gap-2 text-xs text-gray-200 cursor-pointer">
+        <input id="systemLogQrOnlyIssues" type="checkbox" />
+        Nur Fehler/Warnungen (mehr Zeilen passen in den Code)
+      </label>
+      <div class="bg-white rounded-xl p-3 inline-block">
+        <img id="systemLogQrImg" class="w-64 h-64 hidden" alt="QR-Code mit Logauszug" />
+      </div>
+      <div id="systemLogQrMeta" class="ors-hint">Lade Logdatei…</div>
+      <p class="ors-hint">Ein QR-Code fasst nur ca. 2 KB — es passt immer nur ein kleiner, aktueller Auszug hinein, nicht die komplette Datei. Für die vollständige Datei bitte Download/Mail nutzen.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Updates Snapshot -->
+<div id="systemChangesModal" class="ors-modal hidden">
+  <div class="ors-shell" style="max-width: 64rem;">
+    <div class="ors-head">
+      <div class="ors-head-title">
+        <div class="ors-head-icon">📝</div>
+        <div>
+          <h2>Updates &amp; Änderungen</h2>
+          <div class="ors-sub">Änderungsprotokoll der App.</div>
+        </div>
+      </div>
+      <button id="systemChangesCloseBtn" class="ors-close" title="Schließen">✕</button>
+    </div>
+    <div class="ors-body p-4 md:p-6">
+      <div id="systemChangesContent" class="prose prose-invert max-w-none text-sm text-slate-200">
+        <div class="text-slate-400">Lade Updates…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/static/js/system.js"></script>
+<script type="module" src="/static/js/https_admin.js"></script>
+{% endblock %}

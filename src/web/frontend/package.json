@@ -1,0 +1,19 @@
+{
+  "name": "ors-tailwind",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:css && npm run copy:html",
+    "build:css": "tailwindcss -i ./css/input.css -o ./static/dist/style.css --minify",
+    "copy:html": "cp ./html/*.html ./static/dist/",
+    "watch": "tailwindcss -i ./src/input.css -o ./static/style.css --watch"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17"
+  },
+  "dependencies": {
+    "daisyui": "^5.5.8"
+  }
+}

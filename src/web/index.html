@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>OpenResqueSim – Control Panel</title>
+<style>
+  :root { font-family: system-ui, sans-serif; color-scheme: dark light; }
+  body { margin: 24px; }
+  h1 { margin: 0 0 12px; }
+  .row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); margin-bottom: 18px; }
+  fieldset { border: 1px solid #ccc; border-radius: 10px; padding: 12px; }
+  legend { padding: 0 6px; }
+  label { display:block; font-size: 0.9rem; margin: 6px 0 4px; }
+  input, select, button { width:100%; padding:8px; border-radius:8px; border:1px solid #bbb; }
+  .btnrow { display:flex; gap:8px; margin-top:8px; }
+  .status { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; font-size: 0.9rem; background:#f7f7f7; padding:10px; border-radius:8px; border:1px solid #ddd; max-height: 240px; overflow:auto; }
+  .ok { color: #1b8a1b; }
+  .warn { color: #b36b00; }
+  .err { color: #b00020; }
+  small code { background: #eee; padding: 1px 4px; border-radius: 4px; }
+  .sources-toolbar { display:flex; gap:8px; flex-wrap: wrap; margin-bottom:8px; }
+</style>
+</head>
+<body>
+  <h1>OpenResqueSim – Control Panel</h1>
+
+  <div class="row">
+    <fieldset>
+      <legend>Layout</legend>
+      <label for="layoutSel">Layout wählen</label>
+      <select id="layoutSel"></select>
+      <div class="btnrow">
+        <button id="btnApplyLayout">Übernehmen</button>
+        <button id="btnReloadLayouts">Layouts neu laden</button>
+      </div>
+      <small id="layoutInfo"></small>
+    </fieldset>
+
+    <fieldset>
+      <legend>Output</legend>
+      <label for="rtmpUrl">RTMP Ziel (z.B. rtmp://server/live/mix)</label>
+      <input id="rtmpUrl" type="text" placeholder="rtmp://...">
+      <label for="tcpPort">TCP-Stream-Port (FLV)</label>
+      <input id="tcpPort" type="number" min="1" max="65535" placeholder="8081">
+      <div class="btnrow">
+        <button id="btnSaveOutput">Speichern</button>
+        <button id="btnTestTcp">VLC-Hinweis</button>
+      </div>
+      <small>Tipp: VLC → <code>tcp://&lt;IP&gt;:&lt;Port&gt; :demux=flv</code></small>
+    </fieldset>
+
+    <fieldset>
+      <legend>Recording</legend>
+      <label for="recPrefix">Dateipräfix (DB: <code>record.prefix</code>)</label>
+      <input id="recPrefix" type="text" placeholder="session1">
+      <label for="recSeg">Segmentdauer Sek. (DB: <code>record.segment_secs</code>)</label>
+      <input id="recSeg" type="number" min="10" step="10" value="120">
+      <label for="recDir">Ordner (optional, DB: <code>record.dir</code>)</label>
+      <input id="recDir" type="text" placeholder="leer = Standard">
+      <div class="btnrow">
+        <button id="btnRecStart">Aufnahme starten</button>
+        <button id="btnRecStop">Aufnahme stoppen</button>
+      </div>
+      <small>Schalter in DB: <code>record.enabled</code> (true/false). Standard: <code>~/.local/share/openresquesim/recordings</code>.</small>
+    </fieldset>
+
+    <fieldset>
+      <legend>Host</legend>
+      <div class="btnrow">
+        <button id="btnHostStats">Stats aktualisieren</button>
+        <button id="btnReboot">Reboot</button>
+        <button id="btnPoweroff">Poweroff</button>
+      </div>
+      <label><input type="checkbox" id="chkHostCtl"> Host-Steuerung aktiv (DB: <code>host.control_enable</code>)</label>
+      <div id="hostStats" class="status" style="max-height:160px;margin-top:8px;">–</div>
+      <small id="hostInfo"></small>
+    </fieldset>
+  </div>
+
+  <fieldset>
+    <legend>Quellen (0–5)</legend>
+    <div class="sources-toolbar">
+      <button id="btnLoadSourcesDb" title="Füllt Eingabefelder aus DB-Schlüsseln source.0 … source.5">Aus DB laden</button>
+      <button id="btnSaveSourcesDb" title="Speichert aktuelle Eingabefelder als DB-Schlüssel source.0 … source.5">Alle in DB speichern</button>
+      <button id="btnClearSourcesDb" title="Löscht DB-Schlüssel source.0 … source.5">Alle DB-Quellen löschen</button>
+    </div>
+    <div class="row" id="sources"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Status & Telemetrie</legend>
+    <div class="status" id="statusBox">Verbinde WebSocket…</div>
+    <div style="margin-top:8px;">
+      <small id="latencyBox">Latency: –</small>
+    </div>
+  </fieldset>
+
+<script>
+const el  = (id) => document.getElementById(id);
+const api = {
+  async get(path){ const r = await fetch(path); if(!r.ok) throw new Error(path+': '+r.status); return r.json(); },
+  async post(path, body){ const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{})}); if(!r.ok) throw new Error(path+': '+r.status); try { return await r.json(); } catch { return {}; } },
+  async del(path){ const r = await fetch(path, {method:'DELETE'}); if(!r.ok) throw new Error(path+': '+r.status); try { return await r.json(); } catch { return {}; } },
+};
+
+function logStatus(obj) { el('statusBox').textContent = JSON.stringify(obj, null, 2); }
+
+function buildSourcesUI(n=6) {
+  const wrap = el('sources');
+  wrap.innerHTML = '';
+  for (let i=0;i<n;i++) {
+    const fs = document.createElement('div');
+    fs.innerHTML = `
+      <label>Quelle ${i}</label>
+      <input id="src_${i}" type="text" placeholder="rtsp://... oder rtmp://...">
+      <div class="btnrow">
+        <button data-i="${i}" class="btnSet">Setzen</button>
+        <button data-i="${i}" class="btnClear">Leeren</button>
+        <button data-i="${i}" class="btnSaveDb" title="Nur diesen Slot in der DB speichern">In DB speichern</button>
+        <button data-i="${i}" class="btnDelDb" title="Nur diesen Slot in der DB löschen">DB löschen</button>
+      </div>`;
+    wrap.appendChild(fs);
+  }
+  wrap.addEventListener('click', async (ev) => {
+    const idx = +ev.target.dataset.i;
+    if (Number.isNaN(idx)) return;
+
+    if (ev.target.classList.contains('btnSet')) {
+      const url = el(`src_${idx}`).value.trim() || null;
+      await api.post('/api/set_source', { index: idx, url });
+      // automatisch persistent machen
+      if (url) await api.post('/api/settings', { key:`source.${idx}`, value:url });
+      else     await api.del(`/api/settings/source.${idx}`);
+    } else if (ev.target.classList.contains('btnClear')) {
+      await api.post('/api/set_source', { index: idx, url: null });
+      el(`src_${idx}`).value = '';
+      await api.del(`/api/settings/source.${idx}`);
+    } else if (ev.target.classList.contains('btnSaveDb')) {
+      const url = el(`src_${idx}`).value.trim();
+      if (url) await api.post('/api/settings', { key:`source.${idx}`, value:url });
+      else alert('Feld ist leer.');
+    } else if (ev.target.classList.contains('btnDelDb')) {
+      await api.del(`/api/settings/source.${idx}`);
+    }
+  });
+}
+
+async function loadLayouts() {
+  try {
+    const data = await api.get('/api/layouts');
+    const sel = el('layoutSel');
+    sel.innerHTML = '';
+    (data.layouts || []).forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.name; opt.textContent = `${l.name} (${l.slots})`;
+      sel.appendChild(opt);
+    });
+    el('layoutInfo').textContent = `${(data.layouts||[]).length} Layouts geladen`;
+  } catch(e) {
+    el('layoutInfo').textContent = 'Fehler beim Laden der Layouts';
+    console.error(e);
+  }
+}
+
+async function applyLayout() {
+  const lay = el('layoutSel').value;
+  await api.post('/api/set_layout', { layout: lay });
+}
+
+async function saveOutput() {
+  const ops = [];
+  const rtmp = el('rtmpUrl').value.trim();
+  const port = el('tcpPort').value.trim();
+  if (rtmp) ops.push(api.post('/api/settings', { key:'output.rtmp', value: rtmp }));
+  else      ops.push(api.del('/api/settings/output.rtmp'));
+  if (port) ops.push(api.post('/api/settings', { key:'output.tcp_port', value: port }));
+  else      ops.push(api.del('/api/settings/output.tcp_port'));
+  await Promise.all(ops);
+  try { await api.post('/api/rebuild', {}); } catch { await applyLayout(); }
+  alert('Output-Settings gespeichert.');
+}
+
+async function recStart() {
+  const prefix = el('recPrefix').value.trim() || 'rec';
+  const segment_secs = parseInt(el('recSeg').value || '120', 10);
+  const dir = el('recDir').value.trim();
+  const body = { prefix, segment_secs };
+  if (dir) body.dir = dir;
+  await api.post('/api/session/start', body);
+  alert('Recording gestartet.');
+}
+async function recStop() {
+  await api.post('/api/session/stop', {});
+  alert('Recording gestoppt.');
+}
+
+function attachWS() {
+  const wsProto = (location.protocol === 'https:') ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${wsProto}//${location.host}/ws`);
+  ws.onopen = () => { el('statusBox').classList.remove('err'); el('statusBox').textContent = 'Verbunden. Warte auf Status…'; };
+  ws.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.type === 'status') {
+        logStatus(msg);
+        if (msg.layout) el('layoutSel').value = msg.layout;
+        if (Array.isArray(msg.sources)) {
+          msg.sources.forEach((u,i) => {
+            const inp = el(`src_${i}`);
+            // nur füllen, wenn Eingabe leer ist (DB/WS übersteuern sich nicht)
+            if (inp && inp.value === '') inp.value = u || '';
+          });
+        }
+      } else if (msg.type === 'latency') {
+        const box = el('latencyBox');
+        if (box) box.textContent = `Latency: ${msg.output_ms.toFixed(1)} ms (EWMA ${msg.ewma_ms.toFixed(1)} ms)`;
+      } else if (msg.type === 'host_stats') {
+        renderHostStats(msg.stats);
+      }
+    } catch {}
+  };
+  ws.onerror = () => { el('statusBox').classList.add('err'); el('statusBox').textContent = 'WebSocket Fehler'; };
+  ws.onclose = () => { el('statusBox').classList.add('warn'); el('statusBox').textContent = 'WebSocket getrennt – versuche in 2s erneut…'; setTimeout(attachWS, 2000); };
+}
+
+function renderHostStats(s) {
+  if (!s) return;
+  const memMiB = (x)=> (x/1024/1024).toFixed(0);
+  const lines = [
+    `CPU avg: ${s.cpu_avg?.toFixed?.(1) ?? '–'} %`,
+    `RAM: ${memMiB(s.mem_used||0)} / ${memMiB(s.mem_total||0)} MiB`,
+    `Load: ${s.load.one?.toFixed?.(2) ?? '–'} / ${s.load.five?.toFixed?.(2) ?? '–'} / ${s.load.fifteen?.toFixed?.(2) ?? '–'}`,
+    `Uptime: ${s.uptime_s ?? '–'} s`,
+  ];
+  el('hostStats').textContent = lines.join('\n');
+}
+
+async function hostStatsOnce() {
+  try {
+    const s = await api.get('/api/host/stats');
+    renderHostStats(s);
+    el('hostInfo').textContent = 'Host-Stats aktualisiert.';
+  } catch (e) {
+    el('hostInfo').textContent = 'Host-Stats nicht verfügbar.';
+  }
+}
+async function hostCtlSave() {
+  const on = el('chkHostCtl').checked;
+  if (on) await api.post('/api/settings', { key:'host.control_enable', value:'true' });
+  else    await api.post('/api/settings', { key:'host.control_enable', value:'false' });
+  el('hostInfo').textContent = 'Host-Steuerung gespeichert.';
+}
+async function hostReboot() {
+  if (!confirm('Wirklich neu starten?')) return;
+  try {
+    const r = await api.post('/api/host/reboot', {});
+    alert(r.ok ? 'Reboot ausgelöst.' : ('Fehler: ' + (r.error||'unbekannt')));
+  } catch { alert('HTTP-Fehler bei Reboot'); }
+}
+async function hostPoweroff() {
+  if (!confirm('Wirklich ausschalten?')) return;
+  try {
+    const r = await api.post('/api/host/poweroff', {});
+    alert(r.ok ? 'Poweroff ausgelöst.' : ('Fehler: ' + (r.error||'unbekannt')));
+  } catch { alert('HTTP-Fehler bei Poweroff'); }
+}
+
+/** --- DB-Integration für Quellen --- */
+function fillSourcesFromSettings(settingsObj) {
+  for (let i=0;i<6;i++) {
+    const key = `source.${i}`;
+    const val = settingsObj[key];
+    const inp = el(`src_${i}`);
+    if (inp && inp.value === '' && typeof val === 'string' && val.length) {
+      inp.value = val;
+    }
+  }
+}
+
+async function loadSourcesFromDb() {
+  try {
+    const all = await api.get('/api/settings');
+    const s = all.settings || {};
+    fillSourcesFromSettings(s);
+    alert('Quellen aus DB geladen.');
+  } catch (e) {
+    alert('Konnte DB-Quellen nicht laden.');
+  }
+}
+
+async function saveAllSourcesToDb() {
+  const ops = [];
+  for (let i=0;i<6;i++) {
+    const val = el(`src_${i}`).value.trim();
+    if (val) ops.push(api.post('/api/settings', { key:`source.${i}`, value: val }));
+    else     ops.push(api.del(`/api/settings/source.${i}`));
+  }
+  await Promise.allSettled(ops);
+  alert('Alle Quellen in DB gespeichert (leere gelöscht).');
+}
+
+async function clearAllSourcesInDb() {
+  if (!confirm('Wirklich alle DB-Quellen (source.0..5) löschen?')) return;
+  const ops = [];
+  for (let i=0;i<6;i++) ops.push(api.del(`/api/settings/source.${i}`));
+  await Promise.allSettled(ops);
+  alert('Alle DB-Quellen gelöscht.');
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  buildSourcesUI(6);
+  await loadLayouts();
+
+  try {
+    const all = await api.get('/api/settings');
+    const s = all.settings || {};
+    if (s['output.rtmp']) el('rtmpUrl').value = s['output.rtmp'];
+    if (s['output.tcp_port']) el('tcpPort').value = s['output.tcp_port'];
+    if (s['record.prefix']) el('recPrefix').value = s['record.prefix'];
+    if (s['record.segment_secs']) el('recSeg').value = s['record.segment_secs'];
+    if (s['record.dir']) el('recDir').value = s['record.dir'];
+    el('chkHostCtl').checked = (s['host.control_enable'] === 'true');
+
+    // hier DB-Quellen initial eintragen (nur leere Felder)
+    fillSourcesFromSettings(s);
+  } catch {}
+
+  el('btnApplyLayout').addEventListener('click', applyLayout);
+  el('btnReloadLayouts').addEventListener('click', loadLayouts);
+  el('btnSaveOutput').addEventListener('click', saveOutput);
+  el('btnRecStart').addEventListener('click', recStart);
+  el('btnRecStop').addEventListener('click', recStop);
+  el('btnTestTcp').addEventListener('click', () => {
+    const port = el('tcpPort').value || '<PORT>';
+    alert(`VLC: tcp://<SERVER-IP>:${port} :demux=flv   (Latenz-Tipp: --network-caching=50)`);
+  });
+
+  el('btnHostStats').addEventListener('click', hostStatsOnce);
+  el('btnReboot').addEventListener('click', hostReboot);
+  el('btnPoweroff').addEventListener('click', hostPoweroff);
+  el('chkHostCtl').addEventListener('change', hostCtlSave);
+
+  // neue Toolbar-Buttons für Quellen/DB
+  el('btnLoadSourcesDb').addEventListener('click', loadSourcesFromDb);
+  el('btnSaveSourcesDb').addEventListener('click', saveAllSourcesToDb);
+  el('btnClearSourcesDb').addEventListener('click', clearAllSourcesInDb);
+
+  attachWS();
+});
+</script>
+</body>
+</html>

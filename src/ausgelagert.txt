@@ -1,0 +1,66 @@
+.route(
+            "/",
+            get(|| async { axum::response::Html(include_str!("web_index_fallback.html")) }),
+        )
+        .route("/ws", get(ws::ws_route))
+        // Settings & Layouts & Sources
+        .route("/api/set_source", post(routes::set_source))
+        .route("/api/set_layout", post(routes::set_layout))
+        .route("/api/layouts", get(routes::layouts_list_handler))
+        .route("/api/rebuild", post(routes::rebuild_handler))
+        .route(
+            "/api/settings",
+            post(routes::settings_set_handler).get(routes::settings_get_handler),
+        )
+        .route(
+            "/api/settings/:key",
+            get(routes::settings_get_one_handler).delete(routes::settings_delete_handler),
+        )
+        // Host
+        .route("/api/host/stats", get(host::stats_handler))
+        .route("/api/host/reboot", post(host::reboot_handler))
+        .route("/api/host/poweroff", post(host::poweroff_handler))
+        // Sessions
+        .route("/api/session/start", post(sessions::session_start_handler))
+        .route("/api/session/stop", post(sessions::session_stop_handler))
+        .route(
+            "/api/session/current",
+            get(sessions::session_current_handler),
+        )
+        .route("/api/sessions", get(sessions::sessions_list_handler))
+        // Marker
+        .route(
+            "/api/marker/types",
+            get(markers::types_list).post(markers::types_add),
+        )
+        .route(
+            "/api/marker/types/:id",
+            axum::routing::delete(markers::types_delete),
+        )
+        .route(
+            "/api/marker",
+            post(markers::marker_add).get(markers::marker_list),
+        )
+        .route(
+            "/api/marker/:id",
+            axum::routing::delete(markers::marker_delete),
+        )
+        .route("/api/marker/status", get(markers::marker_status))
+        // --- Simulation ---
+        .route("/simulate/start", post(simulate::simulate_start))
+        .route("/simulate/stop", post(simulate::simulate_stop))
+        .route("/simulate/status", get(simulate::simulate_status))
+        // --- Debrief---
+        .route("/debrief/start", post(simulate::debrief_start))
+        .route(
+            "/debrief/set_position",
+            post(simulate::debrief_set_position),
+        )
+        .route("/debrief/replay_time", get(simulate::debrief_replay_time))
+        // Optionen
+        .route("/api/camera/brands", get(routes::camera_brands)) // NEU
+        .route("/api/camera/add_simple", post(routes::camera_add_simple)) // NEU
+        // Statisches Webpanel (dein src/web)
+        .nest_service("/ui", ServeDir::new("src/web"))
+        .with_state(ctx)
+        .route("/api/config", get(ui_config_handler));

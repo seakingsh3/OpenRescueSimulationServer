@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=OpenResqueSim
+Comment=Low-latency Video Mixer & Recorder
+Exec=/usr/bin/openresquesim-server
+Icon=openresquesim
+Terminal=true
+Categories=AudioVideo;Video;Network;

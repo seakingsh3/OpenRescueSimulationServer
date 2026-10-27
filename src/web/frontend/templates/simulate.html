@@ -1,0 +1,794 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  /* Fokusmodus: Marker größer, seltene Actions ausblenden */
+  body.focus-mode .focus-hide { display: none !important; }
+  body.focus-mode .focus-show { display: inline-flex !important; }
+  body.focus-mode #markerControls { gap: 1rem; }
+  body.focus-mode #markerControls button { transform: scale(1.08); }
+
+  /* Marker seitlich angeheftet: Live-Liste neben der Steuerung (ab lg), darunter auf
+     schmalen/Tablet-Bildschirmen. Bleibt beim Scrollen sichtbar. */
+  #markerSideCol { display: none; }
+  #markerSideCol.is-pinned { display: block; }
+  #markerSideCol .markers-list-target { max-height: calc(100vh - 11rem); }
+
+  /* Grundgrößen für Touch (≥48px) */
+  .sim-btn { min-height: 52px; min-width: 52px; }
+  #markerControls button {
+    min-height: 96px;
+    min-width: 120px;
+    padding: 1.25rem 1.5rem;
+    font-size: 1.1rem;
+    border-radius: 0.75rem;
+  }
+  .fab-btn img { pointer-events: none; }
+  .marker-type-btn { min-height: 48px; min-width: 120px; }
+  /* ── AMLS: Formular-Look (angelehnt an das Einsatzformular) ─────────── */
+  .amls-form {
+    --amls-salmon: #c8897a;
+    --amls-salmon-light: #dba89b;
+    --amls-border: #888;
+    --amls-text: #111;
+    --amls-ok: #5a9e6f;
+    --amls-bad: #a03030;
+    background: #fff;
+    color: var(--amls-text);
+    font-family: 'Source Sans 3', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    border-radius: 4px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    padding: 10px 10px 8px;
+  }
+  .amls-form .amls-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1.5px solid var(--amls-border);
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    min-height: 40px;
+  }
+  .amls-form .amls-header-title { font-size: 14px; font-weight: 600; }
+  .amls-form .amls-header-sub { font-size: 11px; color: #555; margin-top: 2px; }
+  .amls-form .amls-section-header {
+    background: var(--amls-salmon);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 3px 8px;
+    letter-spacing: 0.02em;
+  }
+  .amls-form .amls-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 1.5px solid var(--amls-border);
+    border-top: none;
+  }
+  @media (max-width: 900px) {
+    .amls-form .amls-main-grid { grid-template-columns: 1fr; }
+    .amls-form .amls-left-col { border-right: none !important; border-bottom: 1.5px solid var(--amls-border); }
+  }
+  .amls-form .amls-left-col {
+    border-right: 1.5px solid var(--amls-border);
+    display: flex;
+    flex-direction: column;
+  }
+  .amls-form .amls-right-col { display: flex; flex-direction: column; }
+  .amls-form .amls-block {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--amls-border);
+  }
+  .amls-form .amls-block:last-child { border-bottom: none; }
+  .amls-form .amls-block-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+  /* Zeile: Begriff links, richtig/falsch rechts */
+  .amls-form .amls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 3px 0;
+    border-bottom: 1px solid #d9d9d9;
+  }
+  .amls-form .amls-row:last-child { border-bottom: none; }
+  .amls-form .amls-label {
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1.2;
+    color: var(--amls-text);
+    min-width: 0;
+  }
+  .amls-form .amls-label span { font-weight: 400; font-size: 12.5px; }
+  .amls-form .amls-choice { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  /* Buttons: kompakt, formularhaft; aktiver Zustand (btn-active) bleibt für das JS */
+  .amls-form .amls-choice .btn {
+    min-height: 38px;
+    height: 38px;
+    min-width: 78px;
+    padding: 0 12px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 3px;
+    border: 1.5px solid var(--amls-border);
+    background: #f3f3f3;
+    color: #333;
+    box-shadow: none;
+    text-transform: none;
+  }
+  .amls-form .amls-choice .btn-success:hover { background: #e3f1e7; border-color: var(--amls-ok); color: var(--amls-ok); }
+  .amls-form .amls-choice .btn-error:hover   { background: #f6e3e3; border-color: var(--amls-bad); color: var(--amls-bad); }
+  .amls-form .amls-choice .btn-success.btn-active { background: var(--amls-ok);  border-color: var(--amls-ok);  color: #fff; }
+  .amls-form .amls-choice .btn-error.btn-active   { background: var(--amls-bad); border-color: var(--amls-bad); color: #fff; }
+  /* Diagnosetrichter */
+  .amls-form .amls-trichter-wrap { position: relative; padding: 4px 8px 8px; flex: 1; min-height: 120px; }
+  .amls-form .amls-trichter-label { text-align: center; font-weight: 700; font-size: 11.5px; margin-bottom: 4px; }
+  .amls-form .amls-trichter-svg {
+    position: absolute; top: 24px; left: 8px; right: 8px;
+    width: calc(100% - 16px); height: auto; opacity: 0.25; pointer-events: none;
+  }
+  .amls-form .amls-trichter-input-area {
+    position: relative;
+    display: flex; gap: 6px; align-items: center;
+    padding: 30px 24px 0;
+  }
+  .amls-form .amls-trichter-input-area input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    border-bottom: 1px solid #bbb;
+    background: transparent;
+    font-family: inherit;
+    font-size: 12.5px;
+    color: var(--amls-text);
+    padding: 6px 2px;
+    outline: none;
+    border-radius: 0;
+    height: auto;
+    min-height: 36px;
+  }
+  .amls-form .amls-trichter-input-area input::placeholder { color: #999; }
+  .amls-form .amls-trichter-input-area input:focus { border-bottom-color: var(--amls-salmon); background: #fff8f7; }
+  .amls-form .amls-trichter-input-area .btn {
+    min-height: 36px; height: 36px; padding: 0 14px;
+    background: var(--amls-salmon); border: none; color: #fff;
+    border-radius: 3px; font-size: 12px; font-weight: 700; box-shadow: none; text-transform: none;
+  }
+  .amls-form .amls-trichter-input-area .btn:hover { background: #b57265; }
+  /* Priorisierung als Kästchenzeile */
+  .amls-form .amls-severity-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 1.5px solid var(--amls-border);
+    border-top: none;
+  }
+  .amls-form .amls-severity-row .btn {
+    display: flex; align-items: center; justify-content: flex-start; gap: 8px;
+    min-height: 44px; height: auto; padding: 6px 12px;
+    background: var(--amls-salmon-light); color: var(--amls-text);
+    border: none; border-right: 1.5px solid var(--amls-border); border-radius: 0;
+    font-weight: 700; font-size: 12.5px; box-shadow: none; text-transform: none;
+  }
+  .amls-form .amls-severity-row .btn:last-child { border-right: none; }
+  .amls-form .amls-severity-row .btn:hover { background: var(--amls-salmon); color: #fff; }
+  .amls-form .amls-severity-row .btn.btn-active { background: var(--amls-salmon); color: #fff; }
+  .amls-form .amls-checkbox {
+    width: 14px; height: 14px; border: 2px solid #888; border-radius: 2px; background: #fff;
+    position: relative; flex-shrink: 0;
+  }
+  .amls-form .amls-checkbox::after {
+    content: ''; position: absolute; top: 0; left: 3px; width: 4px; height: 8px;
+    border: 2px solid var(--amls-salmon); border-top: none; border-left: none;
+    transform: rotate(45deg); opacity: 0;
+  }
+  .amls-form .btn.btn-active .amls-checkbox { border-color: #fff; }
+  .amls-form .btn.btn-active .amls-checkbox::after { opacity: 1; }
+  .amls-form .amls-footer-note { text-align: center; font-size: 9px; color: #999; margin-top: 8px; }
+
+  /* Cards & Chips */
+  .marker-card {
+    background: linear-gradient(145deg, rgba(59,130,246,0.08), rgba(17,24,39,0.9));
+    border: 1px solid rgba(59,130,246,0.18);
+  }
+  .text-card {
+    background: linear-gradient(145deg, rgba(59,130,246,0.08), rgba(17,24,39,0.9));
+    border: 1px solid rgba(59,130,246,0.18);
+  }
+  .audio-card {
+    background: linear-gradient(145deg, rgba(16, 78, 185, 0.08), rgba(17,24,39,0.9));
+    border: 1px solid rgba(32, 55, 202, 0.18);
+    position: relative;
+    z-index: 0;
+  }
+  .audio-card .collapse-content {
+    position: relative;
+    z-index: 0;
+  }
+  .section-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* Simulate loading overlay */
+  .sim-loading-spinner {
+    width: 48px;
+    height: 48px;
+    border-radius: 9999px;
+    border: 4px solid rgba(255,255,255,0.18);
+    border-top-color: #22c55e;
+    animation: sim-spin 0.9s linear infinite;
+  }
+  @keyframes sim-spin {
+    to { transform: rotate(360deg); }
+  }
+  .sim-loading-bar {
+    height: 100%;
+    width: 40%;
+    background: linear-gradient(90deg, rgba(34,197,94,0.2), rgba(34,197,94,0.8), rgba(34,197,94,0.2));
+    animation: sim-bar 1.2s ease-in-out infinite;
+  }
+  @keyframes sim-bar {
+    0% { transform: translateX(-60%); }
+    100% { transform: translateX(160%); }
+  }
+</style>
+
+<div class="flex flex-col lg:flex-row gap-6 items-start">
+
+  <!-- Linke Seite -->
+  <div class="flex-1 min-w-0 w-full">
+    <h1 class="text-3xl font-bold text-white mb-2">Simulationskontrolle</h1>
+    <div id="emergencyRestartWrap" class="hidden mb-4">
+      <button id="emergencyRestartBtn" class="btn btn-warning btn-lg w-full md:w-auto">
+        🚨 Notfall‑Neustart (gleiche Vorgaben)
+      </button>
+      <div class="text-xs text-base-content/70 mt-1">
+        Beendet die laufende Session und startet sie direkt mit den letzten Einstellungen neu.
+      </div>
+    </div>
+
+    <!-- Live-Raumwechsel (nur bei aktiver Session sichtbar) -->
+    <div id="liveRoomWrap" class="hidden mb-4 card bg-base-200 border border-base-300">
+      <div class="card-body p-4 gap-2">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="font-semibold">🏠 Raum wechseln (live)</div>
+          <div class="text-xs text-base-content/70">
+            Aktuell: <span id="liveRoomCurrent" class="badge badge-outline badge-sm">kein Raum</span>
+          </div>
+        </div>
+        <div class="flex gap-2 flex-col md:flex-row md:items-center">
+          <select id="liveRoomSelect" class="select select-bordered select-sm w-full md:flex-1">
+            <option value="">Raum wählen…</option>
+          </select>
+          <button id="switchRoomBtn" class="btn btn-primary btn-sm md:w-auto w-full">
+            Wechseln
+          </button>
+        </div>
+        <div class="text-xs text-base-content/70">
+          Tauscht Kameras und Layout ohne Unterbrechung von Aufnahme und Zuschauer-Stream.
+          Getauschte Slots zeigen kurz ein Schwarzbild, bis die neue Kamera liefert. Es wird
+          automatisch ein Marker „Raumwechsel“ gesetzt.
+        </div>
+      </div>
+    </div>
+
+
+
+<!-- Marker Types Management Modal -->
+<div id="markerTypesModal"
+     class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden overflow-y-auto">
+  <div class="mx-auto w-full max-w-xl my-8">
+    <div class="bg-base-200 border border-base-300 rounded-xl shadow-xl max-h-[90vh] flex flex-col">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-base-300 sticky top-0 bg-base-200 z-10">
+        <div>
+          <h2 class="text-xl font-bold">📍 Marker-Typen verwalten</h2>
+          <div class="text-xs text-base-content/60">Persönlich nach Login, sonst Standard</div>
+        </div>
+        <button id="closeMarkerTypesModal"
+                class="text-base-content/60 hover:text-base-content text-2xl leading-none">✖</button>
+      </div>
+
+      <!-- Tastenkürzel-Hinweis -->
+      <div class="px-6 py-3 border-b border-base-300 bg-base-300/30 text-xs text-base-content/70 flex items-start gap-3 flex-wrap">
+        <div class="flex-1 min-w-[12rem]">
+          <span class="font-semibold text-base-content">⌨️ Tastenkürzel:</span>
+          Jedem Typ kann eine Taste zugewiesen werden, mit der ein Marker direkt gesetzt wird
+          (auch für eigene Makro-Tastaturen). Empfohlen: <kbd class="kbd kbd-xs">F13</kbd>–<kbd class="kbd kbd-xs">F24</kbd>,
+          die kollidieren nicht mit dem Browser und wirken auch bei fokussiertem Eingabefeld.
+          Andere Tasten wirken nur außerhalb von Eingabefeldern.
+        </div>
+        <button id="autoAssignHotkeysBtn" class="btn btn-xs btn-outline">1–9 automatisch belegen</button>
+      </div>
+
+      <!-- Liste -->
+      <div id="markerTypesList" class="flex-1 overflow-y-auto divide-y divide-base-300">
+        <div class="p-4 text-base-content/60">Lade Marker-Typen…</div>
+      </div>
+
+      <div class="fab fab-flower">
+  <!-- a focusable div with tabindex is necessary to work on all browsers. role="button" is necessary for accessibility -->
+  <div tabindex="0" role="button" class="btn btn-circle btn-lg">
+    <svg
+      aria-label="New"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      class="size-6"
+    >
+      <path
+        d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5Z"
+      />
+    </svg>
+  </div>
+
+  <!-- Main Action button replaces the original button when FAB is open -->
+  <button class="fab-main-action btn btn-circle btn-lg btn-primary">
+    <svg
+      aria-label="New post"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      class="size-6"
+    >
+      <path
+        fill-rule="evenodd"
+        d="M11.013 2.513a1.75 1.75 0 0 1 2.475 2.474L6.226 12.25a2.751 2.751 0 0 1-.892.596l-2.047.848a.75.75 0 0 1-.98-.98l.848-2.047a2.75 2.75 0 0 1 .596-.892l7.262-7.261Z"
+        clip-rule="evenodd"
+      />
+    </svg>
+  </button>
+
+  <!-- buttons that show up when FAB is open -->
+  <button class="btn btn-circle btn-lg">
+    <svg
+      aria-label="New camera photo"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      class="size-6"
+    >
+      <path d="M9.5 8.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+      <path
+        fill-rule="evenodd"
+        d="M2.5 5A1.5 1.5 0 0 0 1 6.5v5A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 13.5 5h-.879a1.5 1.5 0 0 1-1.06-.44l-1.122-1.12A1.5 1.5 0 0 0 9.38 3H6.62a1.5 1.5 0 0 0-1.06.44L4.439 4.56A1.5 1.5 0 0 1 3.38 5H2.5ZM11 8.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+        clip-rule="evenodd"
+      />
+    </svg>
+  </button>
+  <button class="btn btn-circle btn-lg">
+    <svg
+      aria-label="New poll"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      class="size-6"
+    >
+      <path
+        d="M3 4.75a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM6.25 3a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7ZM6.25 7.25a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7ZM6.25 11.5a.75.75 0 0 0 0 1.5h7a.75.75 0 0 0 0-1.5h-7ZM4 12.25a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM3 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
+      />
+    </svg>
+  </button>
+  <button class="btn btn-circle btn-lg">
+    <svg
+      aria-label="New gallery photo"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      class="size-6"
+    >
+      <path
+        fill-rule="evenodd"
+        d="M2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4Zm10.5 5.707a.5.5 0 0 0-.146-.353l-1-1a.5.5 0 0 0-.708 0L9.354 9.646a.5.5 0 0 1-.708 0L6.354 7.354a.5.5 0 0 0-.708 0l-2 2a.5.5 0 0 0-.146.353V12a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5V9.707ZM12 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"
+        clip-rule="evenodd"
+      />
+    </svg>
+  </button>
+  <button class="btn btn-circle btn-lg">
+    <svg
+      aria-label="New voice"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      class="size-6"
+    >
+      <path d="M8 1a2 2 0 0 0-2 2v4a2 2 0 1 0 4 0V3a2 2 0 0 0-2-2Z" />
+      <path
+        d="M4.5 7A.75.75 0 0 0 3 7a5.001 5.001 0 0 0 4.25 4.944V13.5h-1.5a.75.75 0 0 0 0 1.5h4.5a.75.75 0 0 0 0-1.5h-1.5v-1.556A5.001 5.001 0 0 0 13 7a.75.75 0 0 0-1.5 0 3.5 3.5 0 1 1-7 0Z"
+      />
+    </svg>
+  </button>
+</div>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 border-t border-base-300 sticky bottom-0 bg-base-200 z-10">
+        <div class="flex justify-between items-center gap-3">
+          <button id="addMarkerTypeBtn"
+                  class="btn btn-primary btn-sm">
+            ＋ Neuer Typ
+          </button>
+          <span id="markerTypesStats" class="text-xs text-gray-400">0 Typen</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Marker nur während Session Modal -->
+<div id="noSessionMarkerModal"
+     class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex items-center justify-center">
+  <div class="bg-base-200 border border-base-300 rounded-xl shadow-xl p-6 w-full max-w-md">
+    <h2 class="text-xl font-bold mb-3">📍 Marker setzen</h2>
+    <p class="text-base-content/70 mb-4">
+      Marker können nur gesetzt werden, während eine Session läuft.
+    </p>
+    <div class="flex justify-end gap-3">
+      <button id="closeNoSessionMarkerModal"
+              class="btn btn-outline btn-sm">
+        Schließen
+      </button>
+      <button id="okNoSessionMarkerBtn"
+              class="btn btn-primary btn-sm">
+        OK
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Debrief Wechsel Modal -->
+<div id="debriefSwitchModal"
+     class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden overflow-y-auto py-6 px-3 flex items-start justify-center">
+  <div class="bg-base-200 border border-base-300 rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[92vh] overflow-y-auto">
+    <h2 class="text-xl font-bold mb-3">🧭 Zum Debriefing wechseln</h2>
+    <div class="space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <div class="text-sm font-semibold">Session direkt laden</div>
+        <input id="debriefCarrySession" type="checkbox" class="toggle toggle-sm" checked />
+      </div>
+      <div class="space-y-2">
+        <div class="text-sm font-semibold">Viewer mitnehmen</div>
+        <div class="flex items-center gap-3">
+          <input id="debriefCarryViewer" type="checkbox" class="toggle toggle-sm" checked />
+          <select id="debriefViewerSelect" class="select select-bordered select-sm bg-base-300 text-base-content w-full">
+            <option value="">— Viewer wählen —</option>
+          </select>
+        </div>
+      </div>
+      <div class="space-y-2">
+        <div class="text-sm font-semibold">Marker‑Vorauswahl</div>
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-xs text-base-content/70">Nur Vorauswahl anzeigen</div>
+          <input id="debriefMarkerFilterOnly" type="checkbox" class="toggle toggle-sm" />
+        </div>
+        <div id="debriefMarkerTypeList" class="flex flex-wrap gap-2"></div>
+        <div class="text-xs text-base-content/60">Auswahl wird im Debrief hervorgehoben.</div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3 mt-6">
+      <button id="debriefSwitchCancel" class="btn btn-outline btn-sm">Abbrechen</button>
+      <button id="debriefSwitchConfirm" class="btn btn-primary btn-sm">Zum Debriefing</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Toast Notification -->
+<div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg opacity-0 pointer-events-none transition-all duration-500 z-50">
+  Szene gewechselt!
+</div>
+
+<!-- Session loading overlay -->
+<div id="simLoadingOverlay" class="fixed inset-0 hidden z-50">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+  <div class="relative z-10 h-full flex items-center justify-center">
+    <div class="bg-base-200 border border-base-300 rounded-xl px-6 py-5 shadow-xl text-center w-full max-w-sm">
+      <div class="mx-auto sim-loading-spinner"></div>
+      <div id="simLoadingText" class="mt-4 text-base font-semibold">Session wird vorbereitet…</div>
+      <div class="mt-4 h-2 w-full rounded-full bg-base-300 overflow-hidden">
+        <div class="sim-loading-bar"></div>
+      </div>
+      <div class="mt-1 text-xs text-base-content/60">Bitte kurz warten</div>
+    </div>
+  </div>
+</div>
+
+<!-- Marker-Text Modal -->
+<div id="markerNoteModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+  <div class="bg-base-200 text-base-content border border-base-300 rounded-xl p-6 w-full max-w-md shadow-xl space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-semibold">Marker-Notiz</h3>
+      <button id="closeMarkerNoteModal" class="text-base-content/60 hover:text-base-content text-xl">✕</button>
+    </div>
+    <p class="text-sm text-base-content/70">Optionaler Text für <span id="markerNoteLabel" class="font-semibold text-base-content">Marker</span></p>
+    <input id="markerNoteInput" type="text" class="input input-bordered w-full bg-base-300" placeholder="Notiz hinzufügen (optional)" />
+    <div>
+      <div class="text-sm text-base-content/70 mb-2">Häufig genutzt</div>
+      <div id="markerNoteSuggestions" class="flex flex-wrap gap-2"></div>
+    </div>
+    <div class="flex justify-end gap-3">
+      <button id="markerNoteSkip" class="btn btn-ghost">Ohne Text</button>
+      <button id="markerNoteSave" class="btn btn-primary">Setzen</button>
+    </div>
+</div>
+</div>
+<!-- Marker Sektion -->
+<section class="mt-6">
+  <div id="markerContainer" class="card marker-card shadow">
+    <div class="card-body p-0">
+      <div class="collapse collapse-arrow">
+        <input id="toggleMarkerSection" type="checkbox" checked />
+        <div class="collapse-title text-lg font-semibold flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="section-chip"><span>📍</span><span>Marker</span></div>
+            <span id="markerStatusLabel" class="text-xs text-base-content/60">🔄 Lade Marker...</span>
+          </div>
+          
+        </div>
+        <div class="collapse-content space-y-4">
+          <div class="flex items-center gap-2">
+            <button id="markerTypesRefreshBtn" class="btn btn-xs btn-ghost text-base-content/70">↻</button>
+            <button id="markerTypesBtn" class="btn btn-xs btn-outline btn-info">⚙️</button>
+          </div>
+
+          <div class="flex items-center justify-between gap-3">
+            <div class="text-xs text-base-content/60">Eingabemodus</div>
+            <label class="flex items-center gap-2 text-xs">
+              <span class="text-base-content/70">Marker</span>
+              <input id="markerModeToggle" type="checkbox" class="toggle toggle-sm" />
+              <span class="text-base-content/70">AMLS</span>
+            </label>
+          </div>
+
+          <div id="markerModeMarker" class="space-y-4">
+            <div class="space-y-2">
+              <h3 class="text-sm font-semibold">Papier</h3>
+              <button id="papierMarkerBtn"
+                      class="btn btn-sm font-bold border-0 shadow marker-type-btn w-full"
+                      style="background:#f59e0b;color:#fff">
+                📝 Papier‑Marker setzen
+                <kbd id="papierHotkeyKbd" class="kbd kbd-xs ml-2 text-neutral hidden"></kbd>
+              </button>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="text-sm font-semibold">Marker-Typen</h3>
+              <div id="markerControls" class="flex flex-wrap gap-2">
+                <span class="text-gray-400 text-sm">🔄 Marker-Typen werden geladen…</span>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="text-sm font-semibold">Freitext</h3>
+              <input id="freeTextInput" type="text" placeholder="Freitext für Marker"
+                     class="input input-bordered w-full" />
+              <button id="addFreeTextMarker" class="btn btn-primary w-full">📝 Freitext Marker setzen</button>
+            </div>
+          </div>
+
+          <div id="markerModeAmls" class="hidden amls-section amls-form">
+
+            <!-- Kopf -->
+            <div class="amls-header">
+              <div>
+                <div class="amls-header-title">Ersteinschätzung – AMLS</div>
+                <div class="amls-header-sub">Bewertung je Schritt: richtig / falsch → setzt einen AMLS-Marker</div>
+              </div>
+            </div>
+
+            <div class="amls-section-header">Ersteinschätzung:</div>
+
+            <div class="amls-main-grid">
+
+              <!-- LINKS: ABCDE + Entscheidung/Trichter -->
+              <div class="amls-left-col">
+                <div class="amls-block" style="flex:1">
+                  {% set abcde_labels = ["temweg:", "elüftung:", "irkulation:", "efizite neurologisch:", "ntkleiden/Entscheidung:"] %}
+                  {% for item in ["A","B","C","D","E"] %}
+                  <div class="amls-row" data-amls-group="ABCDE-{{ item }}">
+                    <div class="amls-label"><b>{{ item }}</b><span>{{ abcde_labels[loop.index0] }}</span></div>
+                    <div class="amls-choice">
+                      <button class="btn btn-success" data-amls-kind="ABCDE" data-amls-item="{{ item }}" data-amls-value="richtig">richtig</button>
+                      <button class="btn btn-error" data-amls-kind="ABCDE" data-amls-item="{{ item }}" data-amls-value="falsch">falsch</button>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+
+                <div class="amls-section-header">Entscheidung:</div>
+                <div class="amls-trichter-wrap">
+                  <div class="amls-trichter-label">Mögliche Differentialdiagnosen</div>
+                  <svg class="amls-trichter-svg" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="10,5 190,5 110,115 90,115" stroke="#555" stroke-width="2" fill="none"/>
+                  </svg>
+                  <div class="amls-trichter-input-area">
+                    <input id="amlsFunnelInput" type="text" placeholder="Diagnosehinweis / Verdachtsdiagnose" />
+                    <button id="amlsFunnelSubmit" class="btn">Setzen</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- RECHTS: SAMPLER + OPQRST -->
+              <div class="amls-right-col">
+                <div class="amls-block">
+                  {% set sampler_labels = ["ymptome (→ OPQRST)", "llergien:", "edikamente:", "atientenvorgeschichte:", "etzte Mahlzeit/Ausscheidung:", "reignisse vor dem Notfall:", "isikofaktoren:"] %}
+                  {% for item in ["S","A","M","P","L","E","R"] %}
+                  <div class="amls-row" data-amls-group="SAMPLER-{{ item }}">
+                    <div class="amls-label"><b>{{ item }}</b><span>{{ sampler_labels[loop.index0] }}</span></div>
+                    <div class="amls-choice">
+                      <button class="btn btn-success" data-amls-kind="SAMPLER" data-amls-item="{{ item }}" data-amls-value="richtig">richtig</button>
+                      <button class="btn btn-error" data-amls-kind="SAMPLER" data-amls-item="{{ item }}" data-amls-value="falsch">falsch</button>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+
+                <div class="amls-block">
+                  {% set opqrst_labels = ["nset:", "alliation/Provocation:", "ualität:", "egion/Radiation:", "chwere:", "ime-Zeitverlauf:"] %}
+                  {% for item in ["O","P","Q","R","S","T"] %}
+                  <div class="amls-row" data-amls-group="OPQRST-{{ item }}">
+                    <div class="amls-label"><b>{{ item }}</b><span>{{ opqrst_labels[loop.index0] }}</span></div>
+                    <div class="amls-choice">
+                      <button class="btn btn-success" data-amls-kind="OPQRST" data-amls-item="{{ item }}" data-amls-value="richtig">richtig</button>
+                      <button class="btn btn-error" data-amls-kind="OPQRST" data-amls-item="{{ item }}" data-amls-value="falsch">falsch</button>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+
+            </div><!-- /amls-main-grid -->
+
+            <!-- Priorisierung (Kästchenzeile wie im Formular) -->
+            <div class="amls-severity-row" data-amls-group="priority">
+              <button class="btn btn-error" data-amls-kind="Priorisierung" data-amls-item="Kritisch" data-amls-value="gesetzt">
+                <span class="amls-checkbox"></span> Kritisch
+              </button>
+              <button class="btn btn-success" data-amls-kind="Priorisierung" data-amls-item="Nicht kritisch" data-amls-value="gesetzt">
+                <span class="amls-checkbox"></span> Nicht kritisch
+              </button>
+            </div>
+
+            <div class="amls-footer-note">
+              Fachlich basierend auf dem AMLS-Schema (Advanced Medical Life Support) – Lehrkonzept der NAEMT
+            </div>
+          </div>
+
+          <div id="markerListInlineWrap" class="space-y-2">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <h3 class="text-sm font-semibold">Gesetzte Marker</h3>
+              <div class="flex items-center gap-3">
+                <label class="flex items-center gap-2 text-xs text-base-content/70 cursor-pointer" title="Liste während der Sim an der Seite anheften, statt hier eingebettet zu scrollen">
+                  <span>📌 An der Seite</span>
+                  <input id="pinMarkersSideToggle" type="checkbox" class="toggle toggle-xs" />
+                </label>
+                <button id="refreshMarkersBtn" class="btn btn-xs btn-outline">↻</button>
+              </div>
+            </div>
+            <div id="markersList" class="markers-list-target space-y-2 max-h-[60vh] overflow-y-auto">
+              <div class="alert alert-info">🔄 Marker werden geladen…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Textbausteine Sektion -->
+<section class="mt-6">
+  <div class="card text-card shadow">
+    <div class="card-body p-0">
+      <div class="collapse collapse-arrow">
+        <input id="toggleMarkerNotes" type="checkbox" />
+        <div class="collapse-title text-lg font-semibold flex items-center gap-2">
+          <div class="section-chip"><span>💬</span><span>Textbausteine</span></div>
+        </div>
+        <div class="collapse-content space-y-3">
+          <div class="text-xs text-base-content/60">
+            Reihenfolge & Liste sind pro Nutzer. Ohne Login werden Standard-Bausteine verwendet.
+          </div>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input id="markerNoteNew" type="text" placeholder="Neuer Textbaustein"
+                   class="input input-bordered w-full" />
+            <button id="markerNoteAdd" class="btn btn-secondary">＋ Hinzufügen</button>
+          </div>
+          <div id="markerNoteList" class="flex flex-wrap gap-2">
+            <span class="text-gray-400 text-sm">Keine Bausteine geladen…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Audioquellen Sektion -->
+<section class="mt-10">
+  <div class="card audio-card shadow">
+    <div class="card-body p-0">
+      <div class="collapse collapse-arrow">
+        <input id="toggleAudioBtn" type="checkbox" />
+        <div class="collapse-title text-lg font-semibold flex items-center gap-2">
+          <div class="section-chip"><span>🎚️</span><span>Audioquellen</span></div>
+        </div>
+        <div class="collapse-content">
+          <div id="audioList" class="space-y-3">
+            <!-- Audioquellen-Buttons -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="card bg-base-100 w-96 shadow-sm">
+  <div class="card-body">
+    <h2 class="card-title">Tastenkombinationen</h2>
+    <div class="flex items-center gap-2">
+      <ul><p>Löschen Fenster:</p><kbd class="kbd">ctrl</kbd> + <kbd class="kbd">del</kbd></ul>
+      <ul> <p>Sim Start:</p><kbd class="kbd">ctrl</kbd> + <kbd class="kbd">s</kbd></ul>
+      <ul> <p>Sim Stop:</p><kbd class="kbd">ctrl</kbd> + <kbd class="kbd">h</kbd></ul>
+      <ul> <p>Debriefing:</p><kbd class="kbd">ctrl</kbd> + <kbd class="kbd">d</kbd></ul>
+    
+    </div>
+  </div>
+</div>
+
+<!-- <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+   Pipeline/Health Status
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+      <div class="bg-gray-900 border border-gray-800 rounded-lg p-3">
+        <div class="text-xs text-gray-400">Pipeline</div>
+        <div id="healthPipelineState" class="text-lg font-semibold text-white">–</div>
+      </div>
+      <div class="bg-gray-900 border border-gray-800 rounded-lg p-3">
+        <div class="text-xs text-gray-400">Layout-Slots</div>
+        <div id="healthLayoutSlots" class="text-lg font-semibold text-white">–</div>
+      </div>
+      <div class="bg-gray-900 border border-gray-800 rounded-lg p-3">
+        <div class="text-xs text-gray-400">FPS / Dropped</div>
+        <div id="healthFpsDrop" class="text-lg font-semibold text-white">–</div>
+      </div>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-lg p-3 mb-6 flex items-center justify-between">
+      <div>
+        <div class="text-xs text-gray-400">VLC-Notfallstream</div>
+        <div id="vlcStatus" class="text-lg font-semibold text-white">–</div>
+        <div class="text-sm text-gray-400">MPEG-TS (H.264 + AAC) über TCP</div>
+      </div>
+      <div class="text-right text-sm text-gray-300">
+        <div id="vlcUrl" class="font-mono text-white"></div>
+        <div class="text-xs text-gray-400">Mit VLC: Medien → Netzwerkstream öffnen</div>
+        <button id="vlcToggleBtn" class="mt-2 px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white text-sm">
+          Aktivieren
+        </button>
+      </div>
+    </div> 
+</div> -->
+
+  </div>
+
+  <!-- Rechte Seite: Live-Marker angeheftet (nur sichtbar, wenn via Toggle aktiviert) -->
+  <aside id="markerSideCol" class="w-full lg:w-80 xl:w-96 shrink-0 lg:sticky lg:top-[calc(var(--app-header-h)+1rem)]">
+    <div class="card marker-card shadow">
+      <div class="card-body">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="section-chip"><span>📍</span><span>Live-Marker</span></div>
+          <div class="flex items-center gap-2">
+            <button id="refreshMarkersSideBtn" class="btn btn-xs btn-outline">↻</button>
+            <button id="unpinMarkersSideBtn" class="btn btn-xs btn-ghost" title="Wieder einbetten">✕ Lösen</button>
+          </div>
+        </div>
+        <div id="markerSidebarList" class="markers-list-target space-y-2 overflow-y-auto mt-2">
+          <div class="alert alert-info">🔄 Marker werden geladen…</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+{% endblock %}

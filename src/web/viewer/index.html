@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenRescueSim Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/viewer/viewer.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Status-Leiste -->
+      <header class="status-bar">
+        <div id="status-indicator" class="status-indicator status-disconnected"></div>
+        <span id="status-text" class="status-text">Getrennt</span>
+        <span class="status-spacer"></span>
+        <span id="mode-text" class="mode-text">Modus: –</span>
+        <div id="paging-pill" class="paging-pill hidden">
+          <span id="paging-label">Durchsage aktiv</span>
+          <button id="paging-mute-btn" class="paging-btn" aria-label="Durchsage stummschalten/aktivieren">🔇 Mute</button>
+        </div>
+        <button id="reportBtn" class="report-btn" title="Fehler melden">⚠️ Fehler melden</button>
+      </header>
+
+      <div id="offlineOverlay" class="offline-overlay" aria-live="polite">
+        <img src="/static/img/404.png" alt="Verbindung zum Server verloren">
+      </div>
+
+      <div id="pre-start-banner" class="pre-start-banner hidden">
+        <span class="pre-start-banner-icon">⏱</span>
+        <span id="pre-start-banner-text" class="pre-start-banner-text">Start steht bevor – bitte bereit machen!</span>
+      </div>
+
+      <!-- Hauptbereich -->
+      <main class="viewer-main">
+        <!-- IDLE SCREEN -->
+        <section id="idle-screen" class="screen screen-visible">
+          <div class="idle-content">
+            <div class="logo-circle">
+              <img src="/static/icons/icon_ors.png" alt="OpenRescueSim Logo" class="logo-image">
+            </div>
+            <div id="idle-slideshow" class="idle-slideshow">
+              <img id="idle-image" src="/static/img/placeholder_snapshot.jpg" alt="Trivia" class="idle-slide">
+              <div id="idle-caption" class="idle-caption"></div>
+            </div>
+            <p id="idle-text" class="idle-text">
+              Warte auf Einsatzbefehl vom Server …
+            </p>
+          </div>
+        </section>
+
+<!-- LIVE -->
+<section id="live-screen" class="screen">
+  <div class="video-wrapper">
+    <video id="live-video"
+           class="viewer-video"
+           playsinline
+           controls></video>
+    <div id="live-placeholder" class="video-placeholder">
+      Live-Stream ist noch nicht gestartet.
+    </div>
+  </div>
+</section>
+
+    <!-- VOD -->
+    <section id="vod-screen" class="screen">
+      <div class="video-wrapper">
+        <video id="vod-video"
+               class="viewer-video"
+               controls
+               playsinline></video>
+        <div id="vod-placeholder" class="video-placeholder">
+          Kein VOD geladen.
+        </div>
+      </div>
+    </section>
+      </main>
+
+      <!-- Lauftext / Trivia -->
+      <footer class="ticker">
+        <div class="ticker-track" id="ticker-track">
+          <div class="ticker-segment" id="ticker-text"></div>
+          <div class="ticker-segment" id="ticker-text-dup"></div>
+        </div>
+      </footer>
+    </div>
+
+
+    <!-- Viewer-Logik -->
+    <script src="/static/js/device_pairing.js"></script>
+    <script src="/viewer/viewer.js"></script>
+  </body>
+</html>

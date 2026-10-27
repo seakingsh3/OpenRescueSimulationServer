@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="space-y-8">
+  {% include "options_nav.html" %}
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-3xl font-bold text-white">📊 Nutzer-Statistiken</h1>
+      <p class="text-gray-400 text-sm">Deine Stats + Admin-Übersicht.</p>
+    </div>
+    <button id="userStatsRefresh" class="btn btn-sm btn-outline">↻ Aktualisieren</button>
+  </div>
+
+  <div id="userStatsStatus" class="text-sm text-gray-400"></div>
+
+  <section class="card bg-gradient-to-br from-slate-900/80 via-slate-800/50 to-slate-900/80 shadow-xl border border-slate-700/60">
+    <div class="card-body space-y-6">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-semibold text-white">👤 Dein Überblick</h2>
+          <p class="text-sm text-gray-400">Aktuelle Kennzahlen & Fortschritt.</p>
+        </div>
+        <div id="userStatsIdentity" class="text-xs text-gray-400"></div>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-4">
+        <div class="bg-base-200/80 border border-base-300 rounded-xl p-4">
+          <div class="text-xs text-gray-400 uppercase">Marker</div>
+          <div id="statMarkers" class="text-3xl font-bold text-white">—</div>
+          <div id="statMarkersSub" class="text-xs text-gray-400 mt-1">—</div>
+        </div>
+        <div class="bg-base-200/80 border border-base-300 rounded-xl p-4">
+          <div class="text-xs text-gray-400 uppercase">Simulationen</div>
+          <div id="statSims" class="text-3xl font-bold text-white">—</div>
+          <div id="statSimsSub" class="text-xs text-gray-400 mt-1">—</div>
+        </div>
+        <div class="bg-base-200/80 border border-base-300 rounded-xl p-4">
+          <div class="text-xs text-gray-400 uppercase">Debriefings</div>
+          <div id="statDebriefs" class="text-3xl font-bold text-white">—</div>
+          <div id="statDebriefsSub" class="text-xs text-gray-400 mt-1">—</div>
+        </div>
+        <div class="bg-base-200/80 border border-base-300 rounded-xl p-4">
+          <div class="text-xs text-gray-400 uppercase">Letzte Aktivität</div>
+          <div id="statLastActive" class="text-xl font-semibold text-white">—</div>
+          <div id="statLastActiveSub" class="text-xs text-gray-400 mt-1">—</div>
+        </div>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-3">
+        <div class="bg-base-200/60 border border-base-300 rounded-xl p-4">
+          <div class="flex items-center justify-between text-xs text-gray-400">
+            <span>Marker Fortschritt</span>
+            <span id="progMarkersLabel">—</span>
+          </div>
+          <progress id="progMarkers" class="progress progress-primary w-full" value="0" max="100"></progress>
+        </div>
+        <div class="bg-base-200/60 border border-base-300 rounded-xl p-4">
+          <div class="flex items-center justify-between text-xs text-gray-400">
+            <span>Sim-Starts Fortschritt</span>
+            <span id="progSimsLabel">—</span>
+          </div>
+          <progress id="progSims" class="progress progress-secondary w-full" value="0" max="100"></progress>
+        </div>
+        <div class="bg-base-200/60 border border-base-300 rounded-xl p-4">
+          <div class="flex items-center justify-between text-xs text-gray-400">
+            <span>Debrief Fortschritt</span>
+            <span id="progDebriefLabel">—</span>
+          </div>
+          <progress id="progDebrief" class="progress progress-accent w-full" value="0" max="100"></progress>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card bg-base-200 shadow-xl border border-base-300">
+    <div class="card-body space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold text-white">🏆 Deine Achievements</h2>
+        <span class="text-xs text-gray-400">Nur erreichte Erfolge</span>
+      </div>
+      <div id="userAchievementsGrid" class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div class="text-sm text-gray-500">Lade Achievements…</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="adminUserStatsSection" class="card bg-base-200 shadow-xl border border-base-300 hidden">
+    <div class="card-body">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xl font-semibold text-white">🧾 Admin: Alle User</h2>
+        <span class="text-xs text-gray-400">Nur Admins sehen diese Übersicht.</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="table table-zebra text-sm">
+          <thead>
+            <tr>
+              <th>Nutzer</th>
+              <th>Rolle</th>
+              <th>Marker</th>
+              <th>Marker (Text)</th>
+              <th>Simulationen</th>
+              <th>Debriefings</th>
+              <th>Letzte Aktivität</th>
+            </tr>
+          </thead>
+          <tbody id="userStatsBody">
+            <tr>
+              <td colspan="7" class="text-gray-500">Lade Daten…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400">
+        <div id="adminStatsMeta">Seite —</div>
+        <div class="join">
+          <button id="adminStatsPrev" class="btn btn-xs btn-outline join-item">Zurück</button>
+          <button id="adminStatsNext" class="btn btn-xs btn-outline join-item">Weiter</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script type="module" src="/static/js/user_stats.js"></script>
+{% endblock %}

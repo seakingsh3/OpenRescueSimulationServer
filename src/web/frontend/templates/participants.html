@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="space-y-6">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-3xl font-bold text-white">📝 Teilnehmer-Notizblätter</h1>
+      <p class="text-gray-400 text-sm">
+        Je Teilnehmer ein Notizblatt im AMLS-Formular-Layout. Der Link wird per QR-Code oder Kopieren weitergegeben.
+        Bei Simulationsstart wird der Teilnehmer gefragt, ob sein Blatt verknüpft werden soll. Dann erscheinen seine
+        Einträge als Marker unter dem Nutzer „Teilnehmer“.
+      </p>
+    </div>
+    <button id="tnRefresh" class="btn btn-sm btn-outline">↻ Aktualisieren</button>
+  </div>
+
+  <div id="tnStatus" class="text-sm text-gray-400"></div>
+
+  <!-- Anlegen -->
+  <section class="card bg-base-200 shadow-xl border border-base-300">
+    <div class="card-body gap-3">
+      <h2 class="text-xl font-semibold text-white">Neues Notizblatt</h2>
+      <div class="flex flex-col md:flex-row gap-2 md:items-center">
+        <input id="tnNewName" type="text" maxlength="80" placeholder="Name des Teilnehmers (z.B. „Gruppe 2 – Max“)"
+               class="input input-bordered w-full md:flex-1" />
+        <button id="tnCreate" class="btn btn-primary md:w-auto w-full">＋ Anlegen</button>
+      </div>
+      <div class="text-xs text-base-content/60">
+        Der Link enthält ein geheimes Token und funktioniert ohne Login. Wer den Link hat, kann das Blatt ausfüllen.
+      </div>
+    </div>
+  </section>
+
+  <!-- Liste -->
+  <section class="card bg-base-200 shadow-xl border border-base-300">
+    <div class="card-body">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h2 class="text-xl font-semibold text-white">Vorhandene Notizblätter</h2>
+        <div id="tnActiveSession" class="text-xs text-gray-400">Aktive Session: –</div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="table table-zebra text-sm">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Erstellt</th>
+              <th>Einträge</th>
+              <th>Verknüpfung</th>
+              <th class="text-right">Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="tnBody">
+            <tr><td colspan="5" class="text-gray-500">Lade Notizblätter…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- QR-Modal -->
+<div id="tnQrModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+  <div class="bg-base-200 border border-base-300 rounded-xl shadow-xl p-6 w-full max-w-md text-center space-y-3">
+    <h3 class="text-lg font-bold" id="tnQrTitle">QR-Code</h3>
+    <div class="text-xs text-base-content/60">Teilnehmer scannt den Code und öffnet sein Notizblatt.</div>
+    <div class="bg-white inline-block rounded p-2">
+      <img id="tnQrImg" alt="QR-Code" class="w-64 h-64" src="">
+    </div>
+    <div id="tnQrLink" class="text-xs break-all bg-base-300 rounded p-2 text-left"></div>
+    <div class="flex gap-2 justify-center flex-wrap">
+      <button id="tnQrCopy" class="btn btn-sm btn-outline">Link kopieren</button>
+      <a id="tnQrOpen" class="btn btn-sm btn-outline" target="_blank" rel="noopener" href="#">Öffnen</a>
+      <button id="tnQrClose" class="btn btn-sm btn-primary">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/static/js/participants.js"></script>
+{% endblock %}

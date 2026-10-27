@@ -1,0 +1,19 @@
+<!-- Gemeinsame Unter-Navigation aller Optionen-Seiten. Systemstatus steht bewusst vorne. -->
+<div role="tablist" class="tabs tabs-box bg-base-200 border border-base-300 w-fit options-nav" id="optionsNav">
+  <a role="tab" class="tab" href="/ui/options/system" data-path="/ui/options/system">🖥️ Systemstatus</a>
+  <a role="tab" class="tab" href="/ui/options" data-path="/ui/options">⚙️ Einstellungen</a>
+  <a role="tab" class="tab" href="/ui/options/stats" data-path="/ui/options/stats">📊 Nutzer-Stats</a>
+  <a role="tab" class="tab" href="/ui/options/achievements" data-path="/ui/options/achievements">🏆 Achievements</a>
+</div>
+<script>
+  (function () {
+    var here = window.location.pathname.replace(/\/+$/, '') || '/';
+    var links = document.querySelectorAll('#optionsNav a[data-path]');
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].getAttribute('data-path') === here) {
+        links[i].classList.add('tab-active');
+        links[i].setAttribute('aria-selected', 'true');
+      }
+    }
+  })();
+</script>

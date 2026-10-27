@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .lv-stage { aspect-ratio: 16 / 9; max-height: 72vh; }
+  .lv-stage video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+</style>
+
+<div class="space-y-6">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-white">📡 Liveansicht</h1>
+      <p class="text-gray-400 text-sm">
+        Das Bild der laufenden Übung – erscheint automatisch, sobald eine Session (oder ein Vor-Start) läuft.
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="lvState" class="badge badge-ghost">Lade…</span>
+      <button id="lvMuteBtn" class="btn btn-sm btn-outline" disabled title="Ton an/aus">🔇 Ton aus</button>
+      <button id="lvFullscreenBtn" class="btn btn-sm btn-outline" disabled title="Vollbild">⛶ Vollbild</button>
+      <button id="lvReconnectBtn" class="btn btn-sm btn-outline" title="Verbindung neu aufbauen">↻</button>
+    </div>
+  </div>
+
+  <div class="card bg-base-200 border border-base-300 shadow-xl overflow-hidden">
+    <div id="lvStage" class="lv-stage relative w-full mx-auto bg-black">
+      <video id="lvVideo" playsinline muted autoplay class="hidden"></video>
+      <div id="lvOverlay" class="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center px-6 text-gray-300">
+        <div id="lvOverlayIcon" class="text-4xl">📡</div>
+        <div id="lvOverlayText" class="text-sm">Lade Session-Status…</div>
+      </div>
+    </div>
+    <div class="px-4 py-2 text-xs text-gray-400 flex flex-wrap gap-x-4 gap-y-1 border-t border-base-300">
+      <span id="lvSessionInfo">–</span>
+      <span id="lvDistributorInfo"></span>
+      <span class="ml-auto">Hinweis: Jede offene Liveansicht belastet den Server wie ein zusätzlicher Viewer.</span>
+    </div>
+  </div>
+
+  <section class="card bg-base-200 border border-base-300 shadow-xl">
+    <div class="card-body gap-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-xl font-semibold text-white">🖥️ Viewer-Bildschirme</h2>
+          <p class="text-xs text-gray-400">
+            Ferngesteuerte Anzeigen (Beamer, TV, Tablet): zeigen das Ruhebild und schalten bei Übungsstart automatisch auf Live.
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <button id="lvViewersRefresh" class="btn btn-sm btn-outline">↻</button>
+          <button id="lvNewViewerBtn" class="btn btn-sm btn-primary">＋ Neuen Viewer-Bildschirm öffnen</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="table table-zebra table-sm">
+          <thead>
+            <tr><th>Status</th><th>Name</th><th>Adresse</th><th class="text-right">Aktion</th></tr>
+          </thead>
+          <tbody id="lvViewersBody">
+            <tr><td colspan="4" class="text-gray-500">Lade Viewer…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-gray-500">
+        QR-Codes für Zuschauer-Geräte gibt es unter <a class="link" href="/ui/viewer_qr">Zuschauer QR</a>.
+      </p>
+    </div>
+  </section>
+</div>
+
+<script type="module" src="/static/js/live_view.js"></script>
+{% endblock %}

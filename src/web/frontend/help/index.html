@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenRescueSim – Hilfe</title>
+  <link rel="stylesheet" href="/static/dist/style.css" />
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+  <script>
+    // Theme wie in der App (localStorage 'ors-theme')
+    (function () {
+      try {
+        var stored = localStorage.getItem('ors-theme');
+        document.documentElement.setAttribute('data-theme', stored === 'light' ? 'light' : 'dark');
+      } catch (_) {}
+    })();
+  </script>
+  <style>
+    .help-shell { max-width: 1400px; margin: 0 auto; }
+    .help-toc a { display: block; padding: 0.3rem 0.6rem; border-radius: 0.4rem; font-size: 0.85rem; }
+    .help-toc a:hover { background: rgba(255,255,255,0.06); }
+    .help-toc a.active { background: rgba(20,184,166,0.18); color: #5eead4; font-weight: 600; }
+    .help-toc .toc-group { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.55; font-weight: 700; margin: 0.9rem 0.6rem 0.25rem; }
+    .help-section { scroll-margin-top: 6rem; }
+    .help-section h2 { font-size: 1.6rem; font-weight: 800; display: flex; align-items: center; gap: 0.6rem; }
+    .help-section h3 { font-size: 1.1rem; font-weight: 700; margin-top: 1.25rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .help-section p, .help-section li { line-height: 1.55; }
+    .steps-list { counter-reset: step; list-style: none; padding: 0; margin: 0.5rem 0 0; }
+    .steps-list > li { position: relative; padding-left: 2.4rem; margin: 0.45rem 0; }
+    .steps-list > li::before {
+      counter-increment: step; content: counter(step);
+      position: absolute; left: 0; top: 0.05rem; width: 1.7rem; height: 1.7rem; border-radius: 999px;
+      background: linear-gradient(160deg, #14b8a6, #0f766e); color: #fff; font-weight: 800; font-size: 0.8rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ui { display: inline-block; padding: 0 0.4rem; border-radius: 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); font-weight: 600; font-size: 0.9em; white-space: nowrap; }
+    .tip { border-left: 4px solid #14b8a6; background: rgba(20,184,166,0.08); padding: 0.6rem 0.9rem; border-radius: 0.4rem; margin: 0.8rem 0; font-size: 0.92rem; }
+    .warn { border-left: 4px solid #f59e0b; background: rgba(245,158,11,0.10); padding: 0.6rem 0.9rem; border-radius: 0.4rem; margin: 0.8rem 0; font-size: 0.92rem; }
+    .admin-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.1rem 0.5rem; border-radius: 999px; background: rgba(244,63,94,0.18); color: #fda4af; border: 1px solid rgba(244,63,94,0.35); font-weight: 800; vertical-align: middle; }
+    [data-level="admin"] { border: 1px dashed rgba(244,63,94,0.35); border-radius: 0.6rem; padding: 0.75rem 0.9rem; background: rgba(244,63,94,0.04); }
+    body:not(.expert) [data-level="admin"] { display: none !important; }
+    body:not(.expert) .help-toc a[data-level="admin"] { display: none !important; }
+    .expert-hint { display: none; }
+    body:not(.expert) .expert-hint { display: block; }
+    .help-search-hit { outline: 2px solid rgba(20,184,166,0.6); outline-offset: 4px; border-radius: 0.6rem; }
+    body.searching .help-section:not(.help-search-hit) { display: none; }
+    @media print { .help-topbar, .help-toc-wrap { display: none !important; } .help-section { break-inside: avoid; } }
+  </style>
+</head>
+<body class="font-sans min-h-screen bg-base-100 text-base-content">
+
+<!-- Kopfleiste -->
+<header class="help-topbar sticky top-0 z-40 bg-gray-800 shadow-md">
+  <div class="help-shell flex flex-wrap items-center gap-3 px-4 py-3">
+    <a href="/ui" class="btn btn-sm btn-ghost text-white gap-2" title="Zurück zur App">
+      <img src="/static/icons/nav-home.svg" alt="" class="w-4 h-4"> Zur App
+    </a>
+    <div class="flex items-center gap-3 mr-auto">
+      <img src="/static/icons/ORS_logo.svg" alt="" class="w-9 h-9 hidden sm:block" onerror="this.style.display='none'">
+      <div>
+        <div class="text-white font-bold text-lg leading-tight">OpenRescueSim – Hilfe</div>
+        <div class="text-xs text-gray-300">Schritt-für-Schritt-Anleitungen für alle Funktionen</div>
+      </div>
+    </div>
+    <label class="input input-sm input-bordered flex items-center gap-2 bg-base-300 w-56">
+      <span class="opacity-60">🔎</span>
+      <input id="helpSearch" type="search" class="grow bg-transparent" placeholder="Hilfe durchsuchen…">
+    </label>
+    <label class="flex items-center gap-2 cursor-pointer bg-gray-700/70 rounded-lg px-3 py-1.5 text-sm text-white select-none" title="Zeigt zusätzlich alle Admin-Funktionen an">
+      <span>Nutzer</span>
+      <input id="expertToggle" type="checkbox" class="toggle toggle-sm toggle-error" />
+      <span class="font-semibold">Expertenmodus <span class="admin-badge">Admin</span></span>
+    </label>
+    <button class="btn btn-sm btn-outline text-white hidden md:inline-flex" onclick="window.print()">🖨 Drucken</button>
+  </div>
+</header>
+
+<div class="help-shell flex gap-6 px-4 py-6 items-start">
+
+  <!-- Inhaltsverzeichnis -->
+  <nav class="help-toc-wrap hidden lg:block w-64 shrink-0 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
+    <div class="help-toc card bg-base-200 border border-base-300 p-2">
+      <div class="toc-group">Grundlagen</div>
+      <a href="#ueberblick">Überblick &amp; Bedienung</a>
+      <a href="#anmeldung">Anmeldung &amp; Konten</a>
+      <a href="#install" data-level="admin">Server installieren</a>
+      <a href="#setup" data-level="admin">Erstinstallation</a>
+      <a href="#tastatur">Tastenkombinationen</a>
+      <div class="toc-group">Simulation</div>
+      <a href="#simulation">Simulation starten &amp; stoppen</a>
+      <a href="#raeume-live">Raum live wechseln</a>
+      <a href="#viewer">Viewer &amp; Zuschauer</a>
+      <a href="#marker">Marker setzen</a>
+      <a href="#amls">AMLS-Modus</a>
+      <a href="#hotkeys">Marker-Tastenkürzel</a>
+      <a href="#marker-typen">Marker-Typen &amp; Textbausteine</a>
+      <a href="#audio">Audio &amp; Durchsagen (PTT)</a>
+      <a href="#zusatzgeraete">Lautsprecher &amp; On-Air-Lampe</a>
+      <a href="#zusatzgeraete-admin" data-level="admin">Zusatzgeräte einrichten</a>
+      <a href="#teilnehmer">Teilnehmer-Notizblätter</a>
+      <div class="toc-group">Nachbereitung</div>
+      <a href="#debrief">Debriefing</a>
+      <a href="#sessions">Sessions verwalten</a>
+      <div class="toc-group">Einstellungen</div>
+      <a href="#systemstatus">Systemstatus</a>
+      <a href="#kameras">Kameras &amp; Räume</a>
+      <a href="#anzeige">Anzeige &amp; Marker</a>
+      <a href="#aufnahme" data-level="admin">Aufnahme &amp; Ausgabe</a>
+      <a href="#benutzer">Benutzer &amp; Zugang</a>
+      <a href="#stats">Nutzer-Stats &amp; Achievements</a>
+      <div class="toc-group">Weiteres</div>
+      <a href="#https">HTTPS einrichten</a>
+      <a href="#faq">Fehlerbehebung</a>
+      <a href="#glossar">Glossar</a>
+    </div>
+  </nav>
+
+  <!-- Inhalt -->
+  <main class="flex-1 min-w-0 space-y-10">
+
+    <div class="expert-hint tip">
+      <b>Hinweis:</b> Du siehst die Hilfe für <b>Nutzer</b>. Funktionen, die nur Administratoren zur Verfügung stehen
+      (Systemaktionen, Aufnahme-Einstellungen, Benutzerverwaltung, Erstinstallation), erscheinen erst, wenn du oben den
+      <b>Expertenmodus</b> einschaltest.
+    </div>
+    <div id="searchEmpty" class="hidden alert alert-info text-sm">Keine Treffer. Suchbegriff ändern oder Feld leeren.</div>
+
+    <!-- ===================================================================== -->
+    <section id="ueberblick" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🧭 Überblick &amp; Bedienung</h2>
+      <p>OpenRescueSim zeichnet Übungen mit mehreren Kameras auf, überträgt sie live an Zuschauer-Viewer und lässt Ausbilder
+        während der Übung <b>Marker</b> setzen, die im <b>Debriefing</b> angesprungen werden können.</p>
+
+      <h3>Aufbau der Oberfläche</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><b>Seitenmenü links</b>: Dashboard, Simulieren, Debriefen, Zuschauen, Teilnehmer, Optionen (Systemstatus, Einstellungen, User-Stats, Achievements) und Hilfe. Auf kleinen Bildschirmen öffnet es sich über das Menü-Symbol oben links.</li>
+        <li><b>Kopfleiste</b>: Login-Knopf (Schloss) bzw. <span class="ui">Logout</span>, dazu die <b>Session-Statusleiste</b>. Sie zeigt, ob eine Session läuft, und blinkt rot mit <span class="ui">Einloggen</span>, wenn du für die aktuelle Seite angemeldet sein musst.</li>
+        <li><b>Schwebende Aktionsknöpfe (FAB)</b> am rechten Rand: <span class="ui">Start</span>, <span class="ui">Stop</span>, <span class="ui">Viewer</span>, <span class="ui">PTT</span> und <span class="ui">Sessions löschen</span>. Sie sind auf jeder Seite erreichbar.</li>
+        <li><b>Toasts</b>: Kurze Meldungen unten bzw. oben rechts bestätigen Aktionen oder zeigen Fehler. Achievements erscheinen als eigene Toasts.</li>
+        <li><b>Thema</b>: Unten im Seitenmenü zwischen <span class="ui">Hell</span> und <span class="ui">Dunkel</span> umschalten. Die Wahl wird im Browser gespeichert.</li>
+      </ul>
+
+      <h3>Rollen</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><b>Nicht eingeloggt</b>: Nur öffentliche Inhalte, also Zuschauer-Viewer, QR-Generator, Teilnehmer-Notizblätter, Ticker und Trivia.</li>
+        <li><b>Nutzer</b>: Simulation starten und stoppen, Marker setzen, Debriefing, Sessions der letzten 24 Stunden, Kameras und Räume ansehen, Statistiken.</li>
+        <li><b>Admin</b>: Zusätzlich alle Sessions, Benutzerverwaltung, Aufnahme- und Ausgabe-Einstellungen, Systemaktionen, Updates, Logdateien.</li>
+      </ul>
+      <div class="tip">Diese Hilfe ist genauso aufgeteilt: Was nur Admins betrifft, ist mit <span class="admin-badge">Admin</span> markiert und über den <b>Expertenmodus</b> oben einblendbar.</div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="anmeldung" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🔒 Anmeldung &amp; Konten</h2>
+
+      <h3>Einloggen</h3>
+      <ol class="steps-list">
+        <li>Oben rechts auf das <b>Schloss-Symbol</b> klicken oder in der roten Statusleiste auf <span class="ui">Einloggen</span>.</li>
+        <li>Benutzername und Passwort eingeben. <kbd class="kbd kbd-sm">Enter</kbd> löst den Login aus.</li>
+        <li>Nach erfolgreichem Login lädt die Seite neu. Oben erscheint <span class="ui">Logout</span>.</li>
+      </ol>
+      <div class="tip">Ein 401-Hinweis oder eine rote Statusleiste bedeutet immer: Anmeldung erforderlich oder abgelaufen. Einmal neu einloggen genügt.</div>
+
+      <h3>Konto mit Einladungs-Token anlegen (Selbstregistrierung)</h3>
+      <ol class="steps-list">
+        <li>Vom Admin einen <b>Einladungs-Token</b> erhalten (fünfstelliger Code).</li>
+        <li><span class="ui">Optionen</span> → <span class="ui">Einstellungen</span> → Reiter <span class="ui">Benutzer &amp; Zugang</span> öffnen.</li>
+        <li>Im Kasten <b>Anmeldung per Token</b> Token, gewünschten Benutzernamen und Passwort eintragen.</li>
+        <li><span class="ui">Registrieren</span> klicken, danach normal einloggen.</li>
+      </ol>
+
+      <div data-level="admin">
+        <h3>Einladungs-Token erzeugen <span class="admin-badge">Admin</span></h3>
+        <ol class="steps-list">
+          <li>Als Admin einloggen, <span class="ui">Einstellungen</span> → Reiter <span class="ui">Benutzer &amp; Zugang</span>.</li>
+          <li>Im Bereich <b>Benutzerverwaltung</b> unten auf <span class="ui">🔑 Token erzeugen</span> klicken.</li>
+          <li>Der Token erscheint im Feld daneben, mit <span class="ui">Kopieren</span> in die Zwischenablage. Jeder Token ist einmal verwendbar.</li>
+        </ol>
+        <h3>Benutzer direkt anlegen oder löschen <span class="admin-badge">Admin</span></h3>
+        <ol class="steps-list">
+          <li>Im Bereich <b>Benutzerverwaltung</b> Benutzername, Passwort und Rolle (<span class="ui">user</span> oder <span class="ui">admin</span>) eintragen.</li>
+          <li><span class="ui">＋ Benutzer anlegen</span> klicken. Die Tabelle aktualisiert sich, <span class="ui">↻ Aktualisieren</span> lädt sie neu.</li>
+          <li>Zum Entfernen in der Tabellenzeile auf die Aktion <b>Löschen</b> klicken. Der eigene Admin-Account lässt sich nicht selbst entfernen.</li>
+        </ol>
+        <div class="warn">Der Pseudo-Nutzer <b>Teilnehmer</b> gehört zu den Notizblättern und ist in der Liste ausgeblendet. Bitte nicht manuell anlegen oder umbenennen.</div>
+      </div>
+
+      <h3>Ausloggen</h3>
+      <p>Oben rechts <span class="ui">Logout</span> klicken. Token und Benutzername werden im Browser gelöscht, die Seite lädt neu.</p>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="install" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3" data-level="admin">
+      <h2>🧱 Server installieren (Root-Ebene) <span class="admin-badge">Admin</span></h2>
+      <p>Reproduzierbare Installation auf Debian 13 (Trixie) oder Debian 12 mit Backports-Kernel. Der Dienst läuft als
+        <b>root</b>, damit ALSA-Geräte, Systemaktionen und Updates ohne Gruppen- und Rechtepflege funktionieren.
+        Alle Daten liegen unter <code>/var/lib/openresquesim</code>.</p>
+
+      <h3>1 · Voraussetzungen</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Rechner mit Debian, Netzwerk per Kabel, Zugriff als <code>root</code> oder mit <code>sudo</code>.</li>
+        <li>Für Übungsräume mit vielen Kameras mindestens vier CPU-Kerne; die Kameras liefern H.264 per RTSP.</li>
+        <li>Optional ein USB-Audio-Interface für den Raumton. Für die Routing-Matrix einer Scarlett Gen 4 wird Kernel 6.8 oder neuer gebraucht.</li>
+      </ul>
+
+      <h3>2 · Laufzeitpakete</h3>
+      <p>Aus dem Projektordner, oder mit dem Skript, das dem fertigen Paket beiliegt:</p>
+      <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>sudo ./scripts/install_runtime_deps.sh</code></pre>
+      <p>Das installiert GStreamer mit den Plugin-Sätzen base, good, bad, ugly, libav, alsa und nice sowie OpenSSL und SQLite. Zusätzlich für die VOD-Aufbereitung:</p>
+      <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>sudo apt install -y ffmpeg alsa-utils</code></pre>
+      <div class="warn">Ohne <code>gstreamer1.0-nice</code> gibt es kein WebRTC („libnice elements are not available“), ohne <code>ffmpeg</code> keine Aufzeichnung als VOD.</div>
+
+      <h3>3 · Programm installieren</h3>
+      <p>Entweder als Debian-Paket oder als Binary aus dem Quellbaum.</p>
+      <ol class="steps-list">
+        <li><b>Paket bauen</b> (auf einem Rechner mit Rust-Toolchain): <code>cargo install cargo-deb</code>, dann im Projekt <code>cargo deb</code>. Das Paket liegt danach unter <code>target/debian/openresquesim-server_*.deb</code> und enthält Binary, Web-Oberfläche, Hilfe, Desktop-Eintrag und Icon.</li>
+        <li><b>Paket installieren</b>: <code>sudo dpkg -i openresquesim-server_*.deb</code>. Das Binary landet als <code>/usr/bin/openresquesim-server</code>, die Web-Dateien unter <code>/usr/share/openresquesim/web</code>.</li>
+        <li><b>Alternative ohne Paket</b>: <code>cargo build --release</code> und <code>target/release/openresquesim_server</code> nach <code>/usr/bin/openresquesim-server</code> kopieren; den Ordner <code>src/web</code> nach <code>/usr/share/openresquesim/web</code>.</li>
+      </ol>
+
+      <h3>4 · Verzeichnisse</h3>
+      <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>sudo install -d -o root -g root /var/lib/openresquesim /var/cache/openresquesim /var/log/openresquesim /etc/openresquesim</code></pre>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Pfad</th><th>Inhalt</th></tr></thead>
+          <tbody>
+            <tr><td><code>/var/lib/openresquesim/app.db</code></td><td>SQLite-Datenbank (Sessions, Marker, Nutzer, Räume, Kameras, Lautsprecher, Notizblätter)</td></tr>
+            <tr><td><code>/var/lib/openresquesim/recordings/</code></td><td>Aufnahmen je Session und fertige VODs unter <code>vod/</code></td></tr>
+            <tr><td><code>/var/log/openresquesim/</code></td><td>Tägliche Logdateien (auch in der Systemseite abrufbar)</td></tr>
+            <tr><td><code>/etc/openresquesim/</code></td><td>TLS-Zertifikate und <code>tls.env</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-base-content/60">Andere Pfade per <code>ORS_DATA_DIR</code> und <code>ORS_DB_PATH</code>, andere Adresse per <code>ORS_BIND</code> (Standard <code>0.0.0.0:8393</code>).</p>
+
+      <h3>5 · systemd-Dienst</h3>
+      <p>Datei <code>/etc/systemd/system/openresquesim.service</code> anlegen:</p>
+      <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>[Unit]
+Description=OpenResqueSim Server
+After=network.target sound.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+PrivateDevices=false
+StateDirectory=openresquesim
+CacheDirectory=openresquesim
+LogsDirectory=openresquesim
+RuntimeDirectory=openresquesim
+Environment=HOME=/var/lib/openresquesim
+Environment=XDG_DATA_HOME=/var/lib/openresquesim
+Environment=XDG_STATE_HOME=/var/lib/openresquesim
+Environment=XDG_CACHE_HOME=/var/cache/openresquesim
+Environment=XDG_RUNTIME_DIR=/run/openresquesim
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=NO_AT_BRIDGE=1
+EnvironmentFile=-/etc/openresquesim/tls.env
+WorkingDirectory=/var/lib/openresquesim
+ExecStart=/usr/bin/openresquesim-server
+Restart=always
+RestartSec=5
+NoNewPrivileges=false
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/openresquesim /var/cache/openresquesim /run/openresquesim /var/log/openresquesim
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+      <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>sudo systemctl daemon-reload
+sudo systemctl enable --now openresquesim
+journalctl -u openresquesim -f -o cat</code></pre>
+      <div class="tip"><code>PrivateDevices=false</code> ist Pflicht, sonst sieht der Dienst keine ALSA-Geräte. Der Eintrag <code>EnvironmentFile=-/etc/openresquesim/tls.env</code> darf fehlen, solange kein HTTPS eingerichtet ist.</div>
+
+      <h3>6 · Erststart</h3>
+      <ol class="steps-list">
+        <li>Admin-Konto und Grunddaten per Skript anlegen: <code>sudo ./scripts/first_start.sh -p 'SicheresPasswort'</code>. Optional Marker-Typen mit <code>--marker-type "Alarm" "#ff0000"</code>.</li>
+        <li>Alternativ im Browser <code>http://&lt;server&gt;:8393/setup</code> öffnen und den Assistenten ausfüllen, siehe <a class="link" href="#setup">Erstinstallation</a>.</li>
+        <li>Danach <code>http://&lt;server&gt;:8393/ui</code> aufrufen und als Admin einloggen.</li>
+      </ol>
+
+      <h3>7 · Audio prüfen</h3>
+      <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>arecord -l
+arecord -D plughw:1,0 -f S16_LE -r 48000 -c 2 -d 1 /tmp/test.wav
+gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink</code></pre>
+      <p>Die Kartennummer aus <code>arecord -l</code> einsetzen. Mehrkanal-Interfaces erkennt der Server automatisch, die Kanalwahl steht in den Räumen, siehe <a class="link" href="#kameras">Kameras &amp; Räume</a>.</p>
+
+      <h3>8 · Netzwerk und Firewall</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>TCP 8393 (HTTP) und optional TCP 8443 (HTTPS) eingehend erlauben.</li>
+        <li>WebRTC und Durchsagen nutzen UDP. Im Übungsnetz UDP eingehend komplett erlauben, etwa mit nftables <code>udp accept</code> oder ufw <code>allow 1024:65535/udp</code>.</li>
+        <li>Für die Raumlautsprecher UDP 5004 eingehend auf den Pi-Geräten offen halten.</li>
+        <li>Feste IP oder DHCP-Reservierung für den Server, damit Viewer-Links und QR-Codes gültig bleiben.</li>
+      </ul>
+
+      <h3>9 · HTTPS und Lautsprecher</h3>
+      <p>HTTPS für die Durchsage-Geräte: <code>sudo ./scripts/setup_https.sh</code>, Details unter <a class="link" href="#https">HTTPS einrichten</a>. Raumlautsprecher auf dem Raspberry Pi: <code>sudo ./speaker/install_speaker.sh &lt;server&gt;:8393 "Simraum 1" simraum</code>, Details unter <a class="link" href="#audio">Audio &amp; Durchsagen</a>.</p>
+
+      <h3>10 · Updates</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Über die Oberfläche: <span class="ui">Einstellungen</span> → <span class="ui">Aufnahme &amp; Ausgabe</span> → <b>Update</b>: neues Paket hochladen und installieren, der Dienst startet neu.</li>
+        <li>Auf der Konsole: <code>sudo dpkg -i openresquesim-server_*.deb &amp;&amp; sudo systemctl restart openresquesim</code>.</li>
+        <li>Die Datenbank wird beim Start automatisch migriert. Vor Updates <code>/var/lib/openresquesim</code> sichern.</li>
+      </ul>
+
+      <h3>11 · Backup und Diagnose</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Backup: <code>/var/lib/openresquesim</code> (Datenbank und Aufnahmen) und <code>/etc/openresquesim</code> (Zertifikate) sichern. Aufnahmen können groß werden, alte Sessions in der App löschen.</li>
+        <li>Logs live: <code>journalctl -u openresquesim -f -o cat</code>. Tägliche Dateien in der Systemseite unter „Dateien“.</li>
+        <li>Tiefe GStreamer-Diagnose zeitweise in der Unit: <code>Environment=GST_DEBUG=webrtc*:6,nice*:6,alsa*:6,*:3</code>, danach <code>daemon-reload</code> und Neustart.</li>
+        <li>Startet der Dienst nicht: <code>gst-inspect-1.0 --version</code> und die Paketliste aus Schritt 2 prüfen.</li>
+      </ul>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="setup" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3" data-level="admin">
+      <h2>🛠 Erstinstallation <span class="admin-badge">Admin</span></h2>
+      <p>Beim ersten Start ohne abgeschlossenes Setup öffnet sich der Assistent unter <code>/setup</code>. Er kann jederzeit dort erneut aufgerufen werden, solange das Setup nicht abgeschlossen ist.</p>
+      <ol class="steps-list">
+        <li><b>Admin &amp; Sicherheit</b>: Admin-Benutzername (Standard <span class="ui">admin</span>), Passwort und den Auth-Schlüssel eingeben. <span class="ui">Generieren</span> erzeugt einen zufälligen Schlüssel.</li>
+        <li><b>Aufnahme &amp; Ausgabe</b>: Recording aktiv, Container (<span class="ui">mkv</span>/<span class="ui">mp4</span>/<span class="ui">mov</span>), Segmentlänge in Sekunden, maximale Dateien (0 = unbegrenzt), Dateiprefix, Aufnahmeverzeichnis und Audio-Device festlegen.</li>
+        <li><b>Marker-Typen</b>: Standard-Typen mit Name und Farbe anlegen oder über <span class="ui">+ Hinzufügen</span> ergänzen.</li>
+        <li><b>Textbausteine</b>: Vorschläge für Marker-Notizen anlegen.</li>
+        <li><b>Kameras</b>: Erste Kameras mit Name und Stream-URL eintragen.</li>
+        <li><span class="ui">Setup abschließen</span> klicken. Danach ist die App unter <code>/ui</code> nutzbar.</li>
+      </ol>
+      <div class="tip">Das Setup ist auch per Kommandozeile möglich, etwa <code>openresquesim_server setup --admin-password …</code>. Die Datenbank liegt standardmäßig unter <code>~/.local/share/openresquesim/app.db</code>, änderbar per <code>ORS_DB_PATH</code>.</div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="tastatur" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>⌨️ Tastenkombinationen</h2>
+      <p>Gelten, wenn kein Eingabefeld den Fokus hat.</p>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Tasten</th><th>Wirkung</th><th>Wo</th></tr></thead>
+          <tbody>
+            <tr><td><kbd class="kbd kbd-sm">Strg</kbd> + <kbd class="kbd kbd-sm">S</kbd></td><td>Session starten (öffnet den Start-Dialog)</td><td>Simulieren</td></tr>
+            <tr><td><kbd class="kbd kbd-sm">Strg</kbd> + <kbd class="kbd kbd-sm">H</kbd></td><td>Alle Sessions stoppen</td><td>Simulieren</td></tr>
+            <tr><td><kbd class="kbd kbd-sm">Strg</kbd> + <kbd class="kbd kbd-sm">Entf</kbd></td><td>Fenster „Sessions löschen“ öffnen</td><td>Simulieren</td></tr>
+            <tr><td><kbd class="kbd kbd-sm">Strg</kbd> + <kbd class="kbd kbd-sm">D</kbd></td><td>Zum Debriefing wechseln</td><td>Überall</td></tr>
+            <tr><td><kbd class="kbd kbd-sm">Esc</kbd></td><td>Offenes Fenster (Modal) schließen</td><td>Überall</td></tr>
+            <tr><td>frei belegbar</td><td>Marker eines bestimmten Typs setzen, siehe <a class="link" href="#hotkeys">Marker-Tastenkürzel</a></td><td>Simulieren</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="simulation" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🎬 Simulation starten &amp; stoppen</h2>
+      <p>Seite <span class="ui">Simulieren</span>. Eine laufende Simulation heißt <b>Session</b>. Es kann immer nur eine Session aktiv sein.</p>
+
+      <h3>Session starten</h3>
+      <ol class="steps-list">
+        <li>Auf den grünen <span class="ui">Start</span>-Knopf (FAB rechts) klicken oder <kbd class="kbd kbd-sm">Strg</kbd>+<kbd class="kbd kbd-sm">S</kbd> drücken.</li>
+        <li>Im Dialog einen <b>Session-Namen</b> eingeben. Ohne Eingabe wird ein Name mit Zeitstempel vorgeschlagen.</li>
+        <li>Optional <b>Viewer</b> auswählen, die den Livestream erhalten sollen (siehe <a class="link" href="#viewer">Viewer</a>). Ohne Auswahl bekommen alle verbundenen Viewer das Bild.</li>
+        <li>Optional einen <b>Raum</b> wählen. Der Raum legt Layout, Kameras, Audio-Gerät, Lautsprecher und Standard-Viewer fest (siehe <a class="link" href="#kameras">Kameras &amp; Räume</a>).</li>
+        <li>Optional <span class="ui">Vor-Start (Ausbilder benachrichtigen) auslösen</span> anhaken, siehe unten.</li>
+        <li><span class="ui">OK</span> klicken. Während die Pipeline aufgebaut wird, erscheint „Pipeline wird vorbereitet…“, danach „Session gestartet“.</li>
+      </ol>
+      <div class="tip">Ist der Session-Name bereits vergeben, wird automatisch ein Zusatz angehängt und die Session trotzdem gestartet.</div>
+
+      <h3>Vor-Start mit Freigabe</h3>
+      <p>Mit angehaktem Vor-Start wird die Pipeline bereits aufgebaut, aber <b>ohne Aufnahme</b> und ohne Übertragung an Zuschauer: Ausbilder-Viewer (Rolle „Ausbilder“) sehen den Livestream sofort zur Kontrolle, alle UIs sehen einen Toast „Vor-Start“. Alle anderen Viewer (Zuschauer/Teilnehmer) sehen währenddessen <b>kein Bild</b>, sondern nur ein Hinweis-Banner „Start steht bevor – bitte bereit machen!“ auf ihrem Ruhebildschirm. Erst der schwebende <span class="ui">Freigeben</span>-Knopf am rechten Rand startet Aufnahme und Stream für alle Viewer wirklich und blendet das Banner aus. So lässt sich der Beginn exakt timen, ohne dass Zuschauer vorzeitig etwas sehen.</p>
+      <p><b>Vor-Start abbrechen:</b> <span class="ui">Stop</span> beendet einen Vor-Start ohne Freigabe. Die vorbereitete Session wird dann verworfen (sie taucht nicht in der Session-Liste auf, ein Debriefing gibt es nicht), Zuschauer kehren auf den Ruhebildschirm zurück. Ein neuer Vor-Start oder ein direkter Start ersetzt einen noch offenen Vor-Start automatisch, ebenso räumt ein Serverneustart ihn ab. Lädt man die Simulate-Seite neu, während der Vor-Start läuft, erscheint der <span class="ui">Freigeben</span>-Knopf wieder.</p>
+
+      <h3>Session stoppen</h3>
+      <ol class="steps-list">
+        <li>Roten <span class="ui">Stop</span>-Knopf klicken oder <kbd class="kbd kbd-sm">Strg</kbd>+<kbd class="kbd kbd-sm">H</kbd>.</li>
+        <li>Die Aufnahme wird abgeschlossen und als VOD aufbereitet. Viewer wechseln zurück in den Ruhezustand.</li>
+        <li>Anschließend fragt das Fenster <b>Zum Debriefing wechseln</b>, ob du direkt ins Debriefing springen willst: <span class="ui">Zum Debriefing</span> oder <span class="ui">Abbrechen</span>.</li>
+      </ol>
+
+      <h3>Notfall-Neustart</h3>
+      <p>Bei aktiver Session zeigt die Seite oben den gelben Knopf <span class="ui">🚨 Notfall-Neustart (gleiche Vorgaben)</span>. Er stoppt die Session und startet sofort eine neue mit demselben Namen, denselben Viewern und demselben Raum, ohne Rückfragen. Sinnvoll, wenn Bild oder Ton hängen.</p>
+
+      <h3>Statusleiste lesen</h3>
+      <p>Die Leiste oben zeigt Name und Laufzeit der aktiven Session. Mit <span class="ui">↻</span> lässt sich der Status manuell nachladen. Rot blinkend bedeutet: nicht eingeloggt.</p>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="raeume-live" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🏠 Raum live wechseln</h2>
+      <p>Während einer laufenden Session kann auf einen anderen Raum umgeschaltet werden, ohne Aufnahme oder Zuschauer-Stream zu unterbrechen.</p>
+      <ol class="steps-list">
+        <li>Auf <span class="ui">Simulieren</span> die Karte <b>Raum wechseln (live)</b> nutzen. Sie ist nur bei aktiver Session sichtbar und zeigt den aktuellen Raum als Badge.</li>
+        <li>Im Auswahlfeld den Zielraum wählen.</li>
+        <li><span class="ui">Wechseln</span> klicken. Nur Kameras, die sich ändern, werden getauscht. Diese Slots zeigen ein bis drei Sekunden ein Schwarzbild, bis die neue Kamera liefert.</li>
+        <li>Das Layout wird sofort umgestellt, ein Marker <b>„Raumwechsel → Raumname“</b> wird automatisch gesetzt, und der Standard-Viewer des Raums wird bei Bedarf angebunden.</li>
+      </ol>
+      <div class="warn">Ein anderes Audiogerät im Zielraum kann kurz knacken. USB-Kameras müssen vom alten Slot freigegeben sein, bevor ein anderer Slot sie öffnen kann.</div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="viewer" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>📺 Viewer &amp; Zuschauer</h2>
+      <p>Ein <b>Viewer</b> ist ein Anzeigegerät (Beamer, Monitor, Tablet), das die Seite <code>/viewer/&lt;ID&gt;</code> geöffnet hat. Viewer zeigen im Ruhezustand die Trivia-Slideshow mit Ticker, während der Session den Livestream und im Debriefing die Aufzeichnung.</p>
+
+      <h3>Viewer anlegen und verwalten</h3>
+      <ol class="steps-list">
+        <li>Gelben <span class="ui">Viewer</span>-Knopf (FAB) klicken. Das Fenster <b>Viewer verwalten</b> öffnet sich, die Zahl am Knopf zeigt die Online-Viewer.</li>
+        <li><span class="ui">＋ Neu</span> legt einen Viewer an. Name (Alias) und Rolle festlegen: <b>Ausbilder</b>, <b>Teilnehmer</b> oder <b>Sonstige</b>. Die Rolle steuert, wer Vor-Start-Hinweise bekommt.</li>
+        <li>Am Anzeigegerät die Adresse <code>http://&lt;Server-IP&gt;:8393/viewer/&lt;ID&gt;</code> öffnen. Ein neues Gerät zeigt zunächst <b>„Bitte koppeln“</b> (siehe unten), danach meldet es sich als „online“.</li>
+        <li>Für den Session-Start Viewer mit Häkchen auswählen, <span class="ui">Alle auswählen</span> oder <span class="ui">Auswahl leeren</span> nutzen. <span class="ui">↻ Aktualisieren</span> lädt den Online-Status.</li>
+      </ol>
+
+      <h3>Bildschirme und Pager koppeln</h3>
+      <p>Nur <b>gekoppelte</b> Geräte bekommen Bild und Durchsagen – wer nur die Adresse kennt, sieht nichts. Gekoppelt wird ein Gerät einmal, danach merkt es sich das im Browser.</p>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><b>Per QR-Code</b>: Der QR-Code aus <b>Zuschauer QR</b> koppelt das Gerät beim Scannen gleich mit. Ebenso <span class="ui">Öffnen</span> und <span class="ui">＋ Neuen Viewer-Bildschirm öffnen</span> in der Liveansicht.</li>
+        <li><b>Per PIN</b> (z.B. PC am Beamer): Am Gerät erscheint „Bitte koppeln“ mit einem Zahlenfeld. In <span class="ui">Einstellungen</span> → <span class="ui">Kameras &amp; Räume</span> → <b>Aktive Viewer</b> auf <span class="ui">📱 Gerät koppeln</span> tippen und die angezeigte 6-stellige PIN am Gerät eingeben. Der Dialog meldet „✅ gekoppelt“.</li>
+        <li>QR-Code und PIN gelten <b>2 Minuten</b> und nur für <b>ein</b> Gerät. Nach 10 falschen PINs werden offene PINs verworfen.</li>
+        <li>Die Liste <b>Gekoppelte Geräte</b> zeigt Nummer, Gerät und „zuletzt verbunden“. <span class="ui">Entkoppeln</span> nimmt einem Gerät sofort Bild und Ton; es fragt dann wieder nach der PIN.</li>
+        <li>Pager (<code>/pager/&lt;ID&gt;</code>) werden genauso gekoppelt. Viewer und Pager mit derselben Nummer teilen sich die Kopplung.</li>
+      </ul>
+      <div class="warn">Nach dem Update auf diese Version müssen <b>alle vorhandenen Bildschirme und Pager einmal gekoppelt</b> werden, bis dahin zeigen sie „Bitte koppeln“.</div>
+
+      <h3>Zuschauer per QR-Code einladen</h3>
+      <ol class="steps-list">
+        <li>Dashboard-Karte <b>Zuschauer QR</b> öffnen (oder in der <span class="ui">Liveansicht</span> den Link unter „Viewer-Bildschirme“).</li>
+        <li><span class="ui">Jetzt erstellen</span> startet den Assistenten. Schritt 1: die <b>Viewer-ID</b> eintragen und mit <span class="ui">OK</span> bestätigen – jede ID ist ein eigener Viewer-Bildschirm.</li>
+        <li><span class="ui">🔗 Link generieren</span>. Link (mit Server-IP und Port) und großer QR-Code erscheinen, <span class="ui">Link kopieren</span> kopiert die Adresse. <span class="ui">Zurücksetzen</span> beginnt von vorn.</li>
+        <li>Zuschauer scannen den Code mit dem Handy und sehen den Stream im Browser. Der Server verwendet dafür automatisch seine Netzwerk-IP. Der Code koppelt das Gerät und gilt nur 2 Minuten und für ein Gerät – für jedes weitere Gerät den Link neu generieren.</li>
+      </ol>
+
+      <h3>Viewer-Fehlermeldungen</h3>
+      <p>Meldet ein Viewer ein Problem (zum Beispiel keine Verbindung), erscheint in der Kopfleiste ein roter Hinweis. <span class="ui">Details</span> zeigt die Meldung, <span class="ui">Bestätigen</span> quittiert sie.</p>
+
+      <h3>Liveansicht im Ausbilder-Browser</h3>
+      <p>Die Seite <span class="ui">Zuschauen</span> (<b>Liveansicht</b>) zeigt das Bild der laufenden Übung direkt im Browser – ohne Einstellungen. Sie verbindet sich automatisch, sobald eine Session oder ein Vor-Start läuft, und zeigt sonst „Keine Session aktiv“. Der Ton ist zunächst aus (Browser-Vorgabe) und lässt sich mit <span class="ui">🔇 Ton aus</span> einschalten; <span class="ui">⛶ Vollbild</span> vergrößert das Bild.</p>
+      <p>Darunter listet <b>Viewer-Bildschirme</b> alle bekannten Anzeigen (<code>/viewer/&lt;ID&gt;</code>) mit Online-Status. <span class="ui">Öffnen</span> zeigt einen Bildschirm in einem neuen Tab, <span class="ui">＋ Neuen Viewer-Bildschirm öffnen</span> nimmt die nächste freie ID. Jede offene Liveansicht und jeder Viewer kostet den Server etwa gleich viel Rechenleistung.</p>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="marker" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>📍 Marker setzen</h2>
+      <p>Marker sind Zeitmarken mit Typ, Farbe und optionalem Text. Sie werden nur bei laufender Session gesetzt und erscheinen im Debriefing auf der Zeitleiste. Ohne aktive Session weist ein Fenster darauf hin.</p>
+
+      <h3>Marker mit Typ setzen</h3>
+      <ol class="steps-list">
+        <li>Auf <span class="ui">Simulieren</span> im Bereich <b>Marker</b> den Eingabemodus <span class="ui">Marker</span> wählen (Schalter Marker/AMLS).</li>
+        <li>Einen der farbigen <b>Marker-Typ-Knöpfe</b> antippen. Ein kleines Kbd-Zeichen am Knopf zeigt ein zugewiesenes Tastenkürzel.</li>
+        <li>Im Fenster <b>Marker-Notiz</b> optional einen Text eintragen oder einen <b>Textbaustein</b> anklicken. <span class="ui">Setzen</span> speichert mit Text, <span class="ui">Ohne Text</span> ohne. <kbd class="kbd kbd-sm">Enter</kbd> setzt ebenfalls.</li>
+      </ol>
+
+      <h3>Freitext-Marker</h3>
+      <p>Text in <b>Freitext für Marker</b> eintragen und <span class="ui">📝 Freitext Marker setzen</span> klicken. Der Marker bekommt den Typ „Freitext“, der bei Bedarf automatisch angelegt wird.</p>
+
+      <h3>Papier-Marker</h3>
+      <p><span class="ui">📝 Papier-Marker setzen</span> setzt sofort einen Marker vom Typ „Papier“, etwa wenn Teilnehmer etwas auf Papier dokumentieren. Ein zugewiesenes Tastenkürzel wird am Knopf angezeigt.</p>
+
+      <h3>Gesetzte Marker ansehen und löschen</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Die Liste <b>Gesetzte Marker</b> zeigt eigene Marker und die anderer Nutzer, neueste zuerst. Jeder Eintrag zeigt ID, Typ, Zeit, Text und ein Vorschaubild.</li>
+        <li><span class="ui">↻</span> lädt die Liste neu. Sie aktualisiert sich außerdem automatisch, wenn jemand Marker setzt.</li>
+        <li>Über die Löschen-Schaltfläche am Eintrag wird ein Marker entfernt.</li>
+      </ul>
+
+      <h3>Fokusmodus</h3>
+      <p>Der Schalter <b>Fokusmodus</b> vergrößert die Marker-Knöpfe und blendet selten genutzte Aktionen aus, praktisch für Tablets während der Übung.</p>
+
+      <h3>Marker an der Seite anheften</h3>
+      <p>Bei laufender Session lässt sich die Liste <b>Gesetzte Marker</b> neben die Steuerung anheften statt sie im Marker-Bereich einzubetten: Schalter <span class="ui">📌 An der Seite</span> neben „Gesetzte Marker“ aktivieren. Die Liste bleibt dann beim Scrollen sichtbar, mit denselben Einträgen und Löschen-Funktion wie gewohnt. <span class="ui">✕ Lösen</span> in der Seitenleiste bettet sie wieder ein. Die Wahl wird im Browser gemerkt. Auf schmalen Bildschirmen (Tablet-Hochformat) erscheint die Leiste als Block weiter unten statt daneben, da dort kein Platz für zwei Spalten ist.</p>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="amls" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🩺 AMLS-Modus</h2>
+      <p>Der AMLS-Modus bewertet die strukturierte Patientenversorgung. Er sieht aus wie das Einsatzformular und erzeugt Marker vom Typ „AMLS“.</p>
+      <ol class="steps-list">
+        <li>Im Marker-Bereich den Schalter auf <span class="ui">AMLS</span> stellen.</li>
+        <li>Links unter <b>Ersteinschätzung</b> je Schritt <b>A</b>temweg, <b>B</b>elüftung, <b>C</b>irkulation, <b>D</b>efizite neurologisch, <b>E</b>ntkleiden mit <span class="ui">richtig</span> oder <span class="ui">falsch</span> bewerten. Der Marker lautet dann etwa „ABCDE A: richtig“.</li>
+        <li>Rechts <b>SAMPLER</b> (Symptome, Allergien, Medikamente, Patientenvorgeschichte, Letzte Mahlzeit, Ereignisse, Risikofaktoren) und <b>OPQRST</b> (Onset, Palliation, Qualität, Region, Schwere, Time) ebenso bewerten.</li>
+        <li>Unter <b>Entscheidung</b> einen Diagnosehinweis in den <b>Diagnosetrichter</b> tippen und <span class="ui">Setzen</span> klicken. Marker: „Diagnosetrichter: …“.</li>
+        <li>Unten die <b>Priorisierung</b> mit <span class="ui">Kritisch</span> oder <span class="ui">Nicht kritisch</span> setzen.</li>
+      </ol>
+      <div class="tip">Innerhalb einer Zeile bleibt die letzte Wahl farbig markiert. Jeder Klick erzeugt einen neuen Marker, eine Korrektur ist also nachvollziehbar.</div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="hotkeys" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🎛 Marker-Tastenkürzel &amp; Makro-Tastatur</h2>
+      <p>Jedem Marker-Typ kann eine Taste zugewiesen werden. Ein Tastendruck setzt dann sofort einen Marker dieses Typs ohne Klick und ohne Notiz-Fenster.</p>
+
+      <h3>Taste zuweisen</h3>
+      <ol class="steps-list">
+        <li>Auf <span class="ui">Simulieren</span> im Marker-Bereich auf <span class="ui">⚙️</span> klicken. Das Fenster <b>Marker-Typen verwalten</b> öffnet sich.</li>
+        <li>Beim gewünschten Typ <span class="ui">⌨️ Taste zuweisen</span> klicken. Der Status wechselt auf „Jetzt Taste drücken…“.</li>
+        <li>Taste oder Kombination drücken, zum Beispiel <kbd class="kbd kbd-sm">F13</kbd> oder <kbd class="kbd kbd-sm">Strg</kbd>+<kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">1</kbd>. <kbd class="kbd kbd-sm">Esc</kbd> bricht ab, <kbd class="kbd kbd-sm">Entf</kbd> entfernt eine vorhandene Taste.</li>
+        <li>Die Taste erscheint als Kbd-Badge beim Typ und an den Marker-Knöpfen. <span class="ui">✕</span> entfernt sie wieder.</li>
+      </ol>
+      <p><span class="ui">1–9 automatisch belegen</span> verteilt die Ziffern der Reihe nach auf alle Typen ohne Taste.</p>
+
+      <h3>Eigene Makro-Tastatur anschließen</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Empfohlen sind <b>F13 bis F24</b>: keine Kollision mit Browser-Kürzeln, und sie wirken auch, wenn gerade ein Eingabefeld aktiv ist. Alle anderen Tasten wirken nur außerhalb von Eingabefeldern.</li>
+        <li>Erkannt wird die <b>physische Taste</b> (Scancode), nicht das Zeichen. Das Tastaturlayout ist egal.</li>
+        <li>Die Zuordnung liegt auf dem Server und gilt in jedem Browser. Persönliche Marker-Typen (nach Login) haben eigene Tasten.</li>
+        <li>Doppelbelegungen werden abgelehnt. Ein Tastendruck wird 250 ms entprellt.</li>
+      </ul>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="marker-typen" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🏷 Marker-Typen &amp; Textbausteine</h2>
+      <p>Marker-Typen gibt es als <b>Standard</b> (für alle) und <b>persönlich</b> (nur für den eingeloggten Nutzer). Verwaltung über <span class="ui">⚙️</span> im Marker-Bereich oder <span class="ui">Einstellungen</span> → Reiter <span class="ui">Anzeige &amp; Marker</span> → <span class="ui">Marker-Typen verwalten</span>.</p>
+      <h3>Typ anlegen</h3>
+      <ol class="steps-list">
+        <li>Im Fenster unten <span class="ui">＋ Neuer Typ</span> klicken.</li>
+        <li>Namen eingeben, dann im Farbwähler eine Farbe bestimmen und bestätigen.</li>
+        <li>Eingeloggt entsteht ein persönlicher Typ, ohne Login ein Standard-Typ. Admins dürfen alle Typen bearbeiten.</li>
+      </ol>
+      <h3>Typ bearbeiten, sortieren, löschen</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><span class="ui">Bearbeiten</span> ändert Name und Farbe.</li>
+        <li><span class="ui">▲</span> / <span class="ui">▼</span> ändern die Reihenfolge der Knöpfe. Die Sortierung wird gespeichert.</li>
+        <li><span class="ui">Löschen</span> entfernt den Typ. Marker, die ihn nutzen, verlieren ihre Typangabe.</li>
+        <li><span class="ui">↻</span> lädt die Liste neu.</li>
+      </ul>
+      <h3>Textbausteine für Marker-Notizen</h3>
+      <ol class="steps-list">
+        <li>Auf <span class="ui">Simulieren</span> den Bereich <b>Textbausteine</b> öffnen.</li>
+        <li>Text in <b>Neuer Textbaustein</b> eingeben und <span class="ui">＋ Hinzufügen</span> klicken.</li>
+        <li>Die Bausteine erscheinen im Fenster <b>Marker-Notiz</b> als Schnellauswahl. Über die Löschen-Schaltfläche am Eintrag werden sie entfernt.</li>
+      </ol>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="audio" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🔊 Audio &amp; Durchsagen (Voice of Room)</h2>
+      <h3>Audioquellen während der Session</h3>
+      <ol class="steps-list">
+        <li>Auf <span class="ui">Simulieren</span> die Karte <b>Audioquellen</b> aufklappen. Sie ist nur bei aktiver Session sichtbar.</li>
+        <li>Je Eingang lässt sich die Lautstärke regeln und stummschalten. Änderungen wirken sofort auf Stream und Aufnahme.</li>
+      </ol>
+      <h3>Durchsage in den Raum (PTT)</h3>
+      <ol class="steps-list">
+        <li>Blauen <span class="ui">PTT</span>-Knopf (FAB) klicken. Das Fenster <b>Durchsage in den Raum</b> öffnet sich.</li>
+        <li><b>Ziel</b> wählen: eine <b>Lautsprecher-Gruppe</b> oder – bei laufender Session in einem Raum mit zugeordneten Lautsprechern – <b>🏠 Raum …</b>. Der Raum ist dann vorausgewählt, bis du in dieser Browsersitzung bewusst etwas anderes wählst. Darunter steht, wie viele Lautsprecher des Ziels online sind.</li>
+        <li>Optional <span class="ui">Auch an Viewer senden</span> aktivieren, damit die Zuschauer-Viewer mithören. Der Ton läuft über eine eigene Verbindung, getrennt vom Live-Bild: Das Video läuft ungestört weiter, und ein Viewer, der sich während der Durchsage (neu) verbindet, hört sofort mit.</li>
+        <li>Modus wählen: <b>Halten</b> (große Taste gedrückt halten, Leertaste geht auch) oder <b>Umschalten</b> (einmal tippen startet, erneut tippen stoppt, praktisch am Tablet).</li>
+        <li>Sprechen. Der Pegelbalken zeigt das Mikrofon, die Statuszeile meldet „x von y Lautsprecher(n) empfangen“.</li>
+      </ol>
+      <div class="warn">Das Mikrofon gibt der Browser nur über <b>HTTPS</b> oder <code>localhost</code> frei. Öffne die Oberfläche auf dem Sprech-Gerät unter <code>https://&lt;server&gt;.local:8443/ui</code>. Beim ersten Mal muss das Wurzelzertifikat des Servers installiert werden, siehe <a class="link" href="#https">HTTPS einrichten</a>.</div>
+      <h3>Raumlautsprecher (Raspberry Pi) einrichten</h3>
+      <p>Für die kleinen ESP32-Lautsprecher siehe <a class="link" href="#zusatzgeraete">Lautsprecher &amp; On-Air-Lampe</a>.</p>
+      <ol class="steps-list">
+        <li>Auf dem Pi den Client aus dem Projektordner <code>speaker/</code> installieren: <code>sudo ./install_speaker.sh &lt;server:8393&gt; "Simraum 1" simraum</code>. Der Dienst startet automatisch mit dem Gerät.</li>
+        <li>Das Gerät erscheint unter <span class="ui">Einstellungen</span> → <span class="ui">Kameras &amp; Räume</span> → <b>Raumlautsprecher</b> mit Status <b>online</b>.</li>
+        <li>Dort Name und <b>Gruppe</b> eintippen (Feld verlassen speichert), Lautstärke mit dem Schieber setzen.</li>
+        <li><span class="ui">🔔 Test</span> spielt einen Testton, <span class="ui">📍</span> lässt das Gerät piepen und blinken, <span class="ui">🔇</span> schaltet stumm, <span class="ui">⟳</span> startet das Gerät neu (es ist danach einige Sekunden offline), <span class="ui">✕</span> entfernt es aus der Liste (ein laufendes Gerät meldet sich neu an).</li>
+      </ol>
+      <p>Während einer Durchsage zeigt die Liste <b>empfängt</b> bei allen Lautsprechern, die gerade Ton bekommen.</p>
+      <h3>Browser als Notlösung</h3>
+      <p>Ein Tablet kann über <code>/pager/&lt;Viewer-ID&gt;</code> als Empfänger dienen. Es hört die Durchsage, wenn „Auch an Viewer senden“ aktiv ist. Der Pager muss dafür einmal gekoppelt sein (siehe <a class="link" href="#viewer">Bildschirme und Pager koppeln</a>).</p>
+    </section>
+
+    <section id="zusatzgeraete" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🔌 Lautsprecher &amp; On-Air-Lampe (ESP32)</h2>
+      <p>Zwei kleine WLAN-Geräte ergänzen den Übungsbetrieb. Bedienen musst du sie kaum: Der <b>Raumlautsprecher</b> spielt Durchsagen aus dem Ausbilderraum im Simulationsraum ab, die <b>On-Air-Lampe</b> am Raumeingang leuchtet, solange eine Übung läuft.</p>
+      <div class="warn">Beide Geräte sind noch in der Erprobung. Nicht alle Funktionen sind auf der Hardware bestätigt, den genauen Stand kennt die Administration (im Expertenmodus unter „Zusatzgeräte einrichten“ → Teststand).</div>
+
+      <h3>Raumlautsprecher</h3>
+      <p>Das Gerät ist per WLAN mit dem Server verbunden und gibt Durchsagen per <b>Push-to-Talk</b> (siehe <a class="link" href="#audio">Audio &amp; Durchsagen</a>) wieder. Der Ton geht über ein <b>AUX-Kabel (3,5-mm-Klinke)</b> an eine Aktiv- oder Bluetooth-Box, einen eigenen Lautsprecher hat das Gerät nicht.</p>
+      <ol class="steps-list">
+        <li>Box einschalten und auf <b>AUX</b> stellen (je nach Box per Taste oder automatisch, sobald das Kabel steckt).</li>
+        <li>Gerät über <b>USB-C</b> mit Strom versorgen (USB-Netzteil oder PoE-Splitter).</li>
+        <li>Ein kurzer <b>Piepton</b> aus der Box zeigt: Das Gerät ist gestartet.</li>
+        <li>Nach wenigen Sekunden steht es unter <span class="ui">Einstellungen</span> → <span class="ui">Kameras &amp; Räume</span> → <b>Raumlautsprecher</b> mit Status <b>online</b>.</li>
+        <li>Steht dort <b>nicht freigegeben</b> (neue Firmware): einmal mit <span class="ui">📍</span> prüfen, welches Gerät piept, dann <span class="ui">✅ Freigeben</span>. Das gilt dauerhaft, auch nach Neustarts.</li>
+      </ol>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>In der Lautsprecherliste</th><th>Wirkung</th></tr></thead>
+          <tbody>
+            <tr><td><span class="ui">🔔 Test</span></td><td>Kurzer Piepton (ca. 1,5 s): prüft, ob Ton ankommt</td></tr>
+            <tr><td><span class="ui">📍</span> Identifizieren</td><td>Mehrere kurze Pieptöne (ca. 5 s): zeigt, welches Gerät gemeint ist, wenn mehrere im Einsatz sind</td></tr>
+            <tr><td>Lautstärke-Schieber</td><td>Regelt das Signal am Gerät. Die Hauptlautstärke stellst du an der Box ein.</td></tr>
+            <tr><td><span class="ui">🔇</span> Stumm</td><td>Schaltet den Lautsprecher stumm (<span class="ui">🔈</span> schaltet wieder ein)</td></tr>
+            <tr><td>Name / Gruppe</td><td>Beschriftung des Geräts, Feld verlassen speichert. Durchsagen gehen an eine Gruppe oder an die Lautsprecher eines Raums.</td></tr>
+            <tr><td><span class="ui">⟳</span> Neustart</td><td>Startet das Gerät neu, es ist danach einige Sekunden offline</td></tr>
+            <tr><td><span class="ui">✅ Freigeben</span></td><td>Gibt ein neues Gerät frei (Anzeige „nicht freigegeben“). Vorher mit <span class="ui">📍</span> prüfen, ob das richtige Gerät piept. Erst danach bekommt es Durchsagen.</td></tr>
+            <tr><td><span class="ui">🔒</span> Freigabe entziehen</td><td>Das Gerät bekommt sofort keinen Ton mehr, bis es neu freigegeben wird</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tip">
+        <ul class="list-disc pl-6 space-y-1">
+          <li><b>Vor der Übung immer einen Testton schicken.</b></li>
+          <li>Viele Bluetooth-Boxen <b>schalten sich nach einigen Minuten Stille aus</b>, dann ist die nächste Durchsage nicht zu hören. Auto-Off an der Box abschalten, wenn möglich, oder die Box vor wichtigen Durchsagen kurz prüfen.</li>
+          <li>Lautstärke zuerst an der Box einstellen, in der Weboberfläche nur nachjustieren.</li>
+        </ul>
+      </div>
+      <p><b>Wenn nichts zu hören ist:</b></p>
+      <ol class="steps-list">
+        <li>Ist die Box an, auf AUX gestellt und laut genug?</li>
+        <li>Steckt das AUX-Kabel fest in Gerät und Box?</li>
+        <li>Steht der Lautsprecher in der Liste auf <b>online</b>, nicht auf <b>stumm</b> und nicht auf <b>nicht freigegeben</b>?</li>
+        <li><span class="ui">🔔 Test</span> schicken.</li>
+        <li>Hilft das nicht: <span class="ui">⟳</span> Neustart in der Lautsprecherliste, oder das Gerät kurz vom Strom trennen und wieder einstecken.</li>
+        <li>Weiterhin Probleme: an die Administration wenden.</li>
+      </ol>
+
+      <h3>On-Air-Lampe</h3>
+      <p>Die Lampe am Raumeingang <b>leuchtet automatisch, solange eine Übung läuft</b>, und geht aus, wenn sie beendet wird. Bedienen musst du nichts.</p>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Nach Start oder Ende einer Übung dauert es <b>bis zu etwa 3 Sekunden</b>, bis die Lampe umschaltet.</li>
+        <li>Während eines <b>Vor-Starts</b> bleibt sie aus. Sie geht erst mit <span class="ui">Freigeben</span> an, wenn Aufnahme und Stream wirklich laufen.</li>
+        <li>Ist der Server nicht erreichbar oder fällt das WLAN aus, geht die Lampe <b>sicherheitshalber aus</b>. Eine dunkle Lampe heißt also nicht in jedem Fall, dass keine Übung läuft.</li>
+      </ul>
+      <p><b>Wenn die Lampe nicht reagiert:</b></p>
+      <ol class="steps-list">
+        <li>Hat die Lampe Strom?</li>
+        <li>Läuft die Übung wirklich (gestartet bzw. freigegeben)?</li>
+        <li>Gerät kurz vom Strom trennen und wieder anschließen, <b>nur einmal</b> (siehe Hinweis).</li>
+        <li>Weiterhin Probleme: an die Administration wenden.</li>
+      </ol>
+      <div class="warn"><b>Achtung:</b> Wird die Lampe <b>innerhalb der ersten 5 Sekunden nach dem Einschalten</b> erneut vom Strom getrennt, öffnet sie beim nächsten Einschalten ihren Einrichtungsmodus und ist bis zur Einrichtung außer Betrieb. Nach dem Wiedereinschalten also mindestens 5 Sekunden am Strom lassen.</div>
+    </section>
+
+    <section id="zusatzgeraete-admin" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3" data-level="admin">
+      <h2>🔧 Zusatzgeräte einrichten <span class="admin-badge">Admin</span></h2>
+      <p>Einrichtung, Firmware, Hardware und Fehlersuche für Raumlautsprecher und On-Air-Lampe. Die Bedienung im Übungsbetrieb steht unter <a class="link" href="#zusatzgeraete">Lautsprecher &amp; On-Air-Lampe</a>.</p>
+
+      <h3>Teststand (2026-10-22)</h3>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Gerät / Funktion</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Lautsprecher ESP32-S3 + PCM5102: Start, Einrichtungsportal, WLAN</td><td>✅ auf Hardware getestet</td></tr>
+            <tr><td>Lautsprecher ESP32-S3 + PCM5102: Anmeldung am Server, Tonausgabe</td><td>⚠️ <b>noch nicht bestätigt</b></td></tr>
+            <tr><td>Lautsprecher XIAO ESP32-C3 + MAX98357A: WLAN, Anmeldung am Server</td><td>✅ getestet</td></tr>
+            <tr><td>Lautsprecher XIAO ESP32-C3 + MAX98357A: Ton</td><td>❌ <b>nur Knistern, Ursache offen</b></td></tr>
+            <tr><td>On-Air-Lampe ESP-01S: Flashen, Start, Einrichtungsportal</td><td>✅ getestet</td></tr>
+            <tr><td>On-Air-Lampe: WLAN-Verbindung, Schalten des Relais</td><td>⚠️ <b>noch nicht bestätigt</b></td></tr>
+            <tr><td>Trägerplatine V1.0 (PCBWay)</td><td>⚠️ gefertigt und bestückt, elektrischer Test offen</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Raumlautsprecher: Funktionsweise</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Meldet sich per <b>WebSocket</b> unter <code>ws://&lt;server&gt;:&lt;port&gt;/ws/voice/speaker</code> an, gleiches Protokoll wie der Raspberry-Pi-Client <code>speaker/ors-speaker.py</code>.</li>
+        <li>Registriert sich mit <code>codec: "l16"</code>. Der Server schickt solchen Geräten <b>unkomprimiertes PCM</b> (RTP/L16, 16 kHz, mono, Payload-Typ 97) statt Opus (eigener Zweig in <code>src/voice.rs</code>).</li>
+        <li>Audio kommt per <b>UDP an Port 5006</b> am Gerät an und geht per I2S an DAC bzw. Verstärker.</li>
+        <li>Heartbeat alle 5 s (Lautstärke, Stumm, empfangene Pakete, Laufzeit).</li>
+        <li>Vom Server unterstützte Befehle: <code>set_volume</code>, <code>mute</code>, <code>test_tone</code>, <code>identify</code>, <code>config</code> (Name/Gruppe), <code>reboot</code>. <code>reboot</code> löst der Knopf <span class="ui">⟳</span> in der Lautsprecherliste aus.</li>
+        <li><b>Freigabe:</b> Firmware mit Schlüssel-Unterstützung meldet <code>key_support</code>. Ohne gültigen Schlüssel erscheint das Gerät als „nicht freigegeben“ und bekommt keinen Ton; <span class="ui">✅ Freigeben</span> schickt ihm einen Schlüssel (<code>pair</code>), den es dauerhaft speichert und bei jeder Anmeldung mitschickt. Einmal freigegebene Geräte müssen den Schlüssel immer zeigen; ein Gerät ohne Schlüssel kann ein freigegebenes mit derselben ID nicht verdrängen. Alte Firmware ohne Schlüssel und der Raspberry-Pi-Client laufen übergangsweise als „alt · ungesichert“ weiter. Protokoll: <code>Handover_ESP32_Freigabe.md</code>.</li>
+        <li><b>Geräte-ID:</b> <code>esp32-</code> + MAC-Adresse ohne Doppelpunkte, z.B. <code>esp32-28848568b644</code>. Name, Gruppe und Lautstärke merkt sich der Server über diese ID.</li>
+      </ul>
+
+      <h3>Raumlautsprecher: Hardware</h3>
+      <p><b>Variante A (aktuell): ESP32-S3 Super Mini + GY-PCM5102 auf Trägerplatine V1.0</b></p>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Signal</th><th>Super Mini</th><th>GY-PCM5102</th></tr></thead>
+          <tbody>
+            <tr><td>+5V</td><td>5V</td><td>VIN</td></tr>
+            <tr><td>GND</td><td>GND</td><td>GND <b>und SCK</b></td></tr>
+            <tr><td>I2S BCK</td><td>GPIO4</td><td>BCK</td></tr>
+            <tr><td>I2S DIN</td><td>GPIO5</td><td>DIN</td></tr>
+            <tr><td>I2S LRCK</td><td>GPIO6</td><td>LRCK</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>C1 100 µF (≥ 10 V) und C2 100 nF zwischen +5V und GND am PCM5102. C2 ist optional.</li>
+        <li><b>Lötbrücken auf der Rückseite des GY-PCM5102:</b> H1L = L, H2L = L, <b>H3L = H</b>, H4L = L. Mit dem Multimeter prüfen: XSMT ↔ A3V3 und FMT ↔ AGND müssen Durchgang haben. Ohne H3L = H bleibt der Ausgang stumm.</li>
+        <li>Ausgang: <b>Line-Out</b> (3,5-mm-Klinke) → Aktiv- oder Bluetooth-Box über AUX. Das Modul hat keinen Verstärker.</li>
+        <li>Stromversorgung: USB-C, 5 V, ≥ 1 A. PoE nur über einen <b>aktiven PoE-Splitter nach IEEE 802.3af/at mit USB-C-Ausgang</b>.</li>
+      </ul>
+      <div class="warn">C2 <b>nicht durch eine Drahtbrücke ersetzen</b>: Das schließt +5V und GND kurz.</div>
+      <p><b>Variante B: XIAO ESP32-C3 + MAX98357A</b> (Verstärker mit Lautsprecherausgang)</p>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Signal</th><th>XIAO</th><th>MAX98357A</th></tr></thead>
+          <tbody>
+            <tr><td>BCLK</td><td>GPIO5 (D3)</td><td>BCLK</td></tr>
+            <tr><td>LRCLK</td><td>GPIO6 (D4)</td><td>LRC</td></tr>
+            <tr><td>DIN</td><td>GPIO7 (D5)</td><td>DIN</td></tr>
+            <tr><td>+5V / GND</td><td>5V / GND</td><td>VIN / GND</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>GPIO2, 8 und 9 (D0, D8, D9) nicht verwenden: Das sind Strapping-Pins, GPIO9 hängt zudem am BOOT-Taster.</p>
+
+      <h3>Raumlautsprecher: Platinendaten (Variante A)</h3>
+      <p>Im Ordner <code>speaker-esp32/</code>:</p>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Datei</th><th>Inhalt</th></tr></thead>
+          <tbody>
+            <tr><td><code>ORS_Lautsprecher.kicad_pro</code> / <code>.kicad_pcb</code></td><td>KiCad-10-Projekt (nur Layout, Netze vergeben, DRC fehlerfrei)</td></tr>
+            <tr><td><code>fertigung/ORS_Lautsprecher_V1.0_gerber.zip</code></td><td>Gerber- und Bohrdaten, 2 Lagen, 1,6 mm, 58 × 40 mm, 4 × M3</td></tr>
+            <tr><td><code>3d/ORS_Lautsprecher_komplett.step</code></td><td>3D-Modell der bestückten Platine für den Gehäuseentwurf</td></tr>
+            <tr><td><code>3d/make_models.py</code></td><td>Erzeugt die vereinfachten Modulmodelle (FreeCAD); Maße als Parameter, Schätzwerte markiert</td></tr>
+            <tr><td><code>Verdrahtung_S3_PCM5102.md</code></td><td>Verbindungsliste</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Außenmaße bestückt: 71,0 × 40,0 mm. Die Höhe von etwa 9 mm über der Platine ist geschätzt und muss noch nachgemessen werden.</p>
+
+      <h3>Raumlautsprecher: Firmware bauen und flashen</h3>
+      <p>Quelle: <code>speaker-esp32/speaker_esp32.ino</code>, eine Datei für beide Varianten. Die Pins werden anhand des gewählten Boards gesetzt.</p>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Boardpaket „esp32“ von Espressif, <b>Version 2.0.x</b> (getestet 2.0.14). Die Firmware nutzt den I2S-Treiber <code>driver/i2s.h</code> aus Core 2.x.</li>
+        <li>Bibliotheken: <b>WebSockets</b> (Markus Sattler, getestet 2.7.2), <b>ArduinoJson</b> (6.x oder 7.x), <b>WiFiManager</b> (tzapu, 2.0.x).</li>
+      </ul>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Variante</th><th>Board</th><th>Einstellungen</th></tr></thead>
+          <tbody>
+            <tr><td>A: ESP32-S3 Super Mini</td><td>ESP32S3 Dev Module</td><td>USB CDC On Boot: <b>Enabled</b>, USB Mode: Hardware CDC and JTAG, Flash Size: 4MB, PSRAM: Disabled</td></tr>
+            <tr><td>B: XIAO ESP32-C3</td><td>XIAO_ESP32C3</td><td>Standardeinstellungen lassen. <b>Achtung:</b> Bei diesem Board schaltet die Menüoption mit dem internen Namen <code>cdc</code> die USB-Ausgabe <b>ab</b>, anders als beim S3.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Mit arduino-cli:</p>
+      <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>arduino-cli compile --fqbn "esp32:esp32:esp32s3:CDCOnBoot=cdc,USBMode=hwcdc,FlashSize=4M,PSRAM=disabled" --upload -p COMx speaker_esp32</code></pre>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Nach dem Flashen bleibt das Board über den USB-Reset im Download-Modus hängen. Einmal <b>abstecken und wieder anstecken</b>, dann startet die Firmware. Serieller Monitor: 115200 Baud.</li>
+        <li>Arduino verlangt, dass der Ordner wie die <code>.ino</code>-Datei heißt (<code>speaker_esp32/speaker_esp32.ino</code>). Im Repo liegt sie unter <code>speaker-esp32/</code>, zum Kompilieren also in einen passend benannten Ordner kopieren oder den Ordner umbenennen.</li>
+      </ul>
+
+      <h3>Raumlautsprecher: WLAN und Server einrichten</h3>
+      <p>Die WLAN-Zugangsdaten stehen <b>nicht</b> in der Firmware. Das Gerät speichert sie selbst (NVS), sie überstehen Neustarts und Firmware-Updates.</p>
+      <ol class="steps-list">
+        <li>Gerät ohne bekanntes WLAN starten. Es öffnet den Access Point <b><code>ORS-Lautsprecher-XXXX</code></b> (XXXX = letzte 4 Stellen der MAC), Passwort <b><code>ors-setup</code></b>. Zwei kurze Pieptöne zeigen den Einrichtungsmodus an.</li>
+        <li>Mit dem Handy verbinden. Die Einrichtungsseite öffnet sich selbst, sonst <code>http://192.168.4.1</code>.</li>
+        <li><span class="ui">Configure WiFi</span> → WLAN wählen (nur <b>2,4 GHz</b>), Passwort eingeben.</li>
+        <li><b>Server-Adresse</b> und <b>Port</b> prüfen (die eingebaute Vorgabe durch die Adresse des eigenen Servers ersetzen, Port <code>8393</code>) → <span class="ui">Save</span>.</li>
+      </ol>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Das Portal schließt nach <b>3 Minuten</b> ohne Eingabe. Das Gerät startet dann neu und versucht das gespeicherte WLAN.</li>
+        <li><b>Später ändern:</b> BOOT-Taster am Board <b>3 Sekunden</b> halten, dann öffnet sich das Portal. So auch nach einem Wechsel der Server-IP.</li>
+        <li>Ist das WLAN im Betrieb <b>länger als 60 s</b> weg, startet das Gerät neu.</li>
+        <li>Nach der Anmeldung erscheint das Gerät in der Lautsprecherliste als „Simraum ESP32“ in Gruppe <code>default</code>. Dort umbenennen und einer Gruppe zuordnen.</li>
+      </ul>
+
+      <h3>Raumlautsprecher: Netzwerk</h3>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Richtung</th><th>Protokoll / Port</th></tr></thead>
+          <tbody>
+            <tr><td>Gerät → Server</td><td>TCP, Server-Port (Standard 8393), WebSocket <code>/ws/voice/speaker</code></td></tr>
+            <tr><td>Server → Gerät</td><td><b>UDP 5006</b> (RTP/L16)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Firewall bzw. WLAN-Client-Isolation müssen UDP vom Server zum Gerät zulassen.</p>
+
+      <h3>Raumlautsprecher: Fehlersuche</h3>
+      <p>Serielle Ausgabe über USB lesen (115200 Baud). Wichtige Meldungen:</p>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Meldung</th><th>Bedeutung</th></tr></thead>
+          <tbody>
+            <tr><td><code>[wifi] Verbunden mit "…", IP …, … dBm</code></td><td>WLAN steht</td></tr>
+            <tr><td><code>[wifi] getrennt, Grund N</code></td><td>Trennung: 15 = meist falsches Passwort, 201 = Netz nicht gefunden (5 GHz?), 202 = Anmeldung abgelehnt</td></tr>
+            <tr><td><code>[ws] registriert als "…"</code></td><td>Am Server angemeldet</td></tr>
+            <tr><td><code>[ws] getrennt</code> (wiederholt)</td><td>Server nicht erreichbar: Läuft er, stimmen IP und Port?</td></tr>
+            <tr><td><code>[rtp] N Pakete/s, M Samples/Paket, PT 97, K verloren</code></td><td>Während einer Durchsage, einmal pro Sekunde</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><b>PT 97</b> ist korrekt (L16).</li>
+        <li><b>PT 111</b> heißt: Der Server schickt Opus. Das Gerät spielt das als Knistern ab, dann den L16-Zweig des Servers prüfen.</li>
+        <li>Viele <b>verlorene</b> Pakete deuten auf WLAN-Probleme hin.</li>
+        <li><b>Kein Ton (Variante A):</b> Ist der Startton beim Einschalten hörbar? Wenn nein: Lötbrücken (H3L!), SCK an GND, Verkabelung, Lötstellen und Box prüfen. Ist der Startton da, aber keine Durchsage: Anmeldung am Server und RTP-Statistik prüfen, UDP 5006 freigeben.</li>
+      </ul>
+
+      <h3>On-Air-Lampe: Funktionsweise</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Fragt alle <b>3 s</b> <code>GET http://&lt;server&gt;:&lt;port&gt;/api/sim/status</code> ab. Der Endpunkt braucht <b>keinen Login</b>, er steht serverseitig in <code>is_public_api_path()</code> in <code>src/main.rs</code>.</li>
+        <li><code>"active":true</code> → Relais an, <code>"active":false</code> → Relais aus. Ein Vor-Start meldet <code>"active":false</code> (die Session ist noch nicht freigegeben), die Lampe bleibt dann aus.</li>
+        <li>Nach <b>3 fehlgeschlagenen</b> Abfragen in Folge und bei WLAN-Verlust: Relais <b>aus</b>.</li>
+        <li>Ist das WLAN länger als 60 s weg, startet das Gerät neu.</li>
+      </ul>
+
+      <h3>On-Air-Lampe: Hardware</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><b>ESP-01S (ESP8266)</b> auf einem ESP-01S-Relaismodul.</li>
+        <li>Relais an <b>GPIO0</b>, schaltet bei LOW. Das ist eine Annahme für das übliche „ESP-01S Relay“-Modul, am Gerät noch nicht bestätigt. Bei umgekehrtem Verhalten <code>RELAY_ACTIVE_LOW</code> auf <code>false</code> setzen.</li>
+        <li>Das Relaismodul mit <b>5 V</b> versorgen. Der ESP-01S braucht kurzzeitig bis etwa 300 mA, der 3V3-Pin eines FT232RL-Adapters (≈ 50 mA) reicht <b>nicht</b>.</li>
+      </ul>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Blaue LED (GPIO2)</th><th>Bedeutung</th></tr></thead>
+          <tbody>
+            <tr><td>blinkt schnell</td><td>Einrichtungsportal offen</td></tr>
+            <tr><td>blinkt langsam</td><td>verbindet bzw. WLAN verloren</td></tr>
+            <tr><td>leuchtet dauerhaft</td><td>WLAN verbunden</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>On-Air-Lampe: Firmware bauen und flashen</h3>
+      <p>Quelle: <code>relay-onair/relay_onair.ino</code>.</p>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Boardpaket <b>„esp8266“</b> (getestet 3.1.2), Board <b>Generic ESP8266 Module</b>, Flash Size <b>1MB (FS:64KB)</b>.</li>
+        <li>Bibliothek: <b>WiFiManager</b> (tzapu, 2.0.x).</li>
+        <li>Flashen am einfachsten mit einem <b>ESP-01-USB-Programmer (CH340)</b>, der den Flash-Modus selbst schaltet.</li>
+      </ul>
+      <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>arduino-cli compile --fqbn "esp8266:esp8266:generic:eesz=1M64,ResetMethod=nodemcu" --upload -p COMx relay_onair</code></pre>
+      <p>Seriell: 115200 Baud. Die Startmeldungen des ESP8266 kommen mit 74880 Baud und erscheinen bei 115200 als Zeichensalat, das ist normal.</p>
+
+      <h3>On-Air-Lampe: Einrichtung</h3>
+      <ol class="steps-list">
+        <li>Ohne bekanntes WLAN öffnet die Lampe den Access Point <b><code>ORS-OnAir-XXXX</code></b>, Passwort <b><code>ors-setup</code></b>, Einrichtungsseite unter <code>http://192.168.4.1</code>.</li>
+        <li>WLAN (2,4 GHz) wählen, Server-Adresse (Adresse des eigenen Servers) und Port (<code>8393</code>) eintragen, <span class="ui">Save</span>.</li>
+        <li><b>Später ändern:</b> Der ESP-01S hat keinen freien Taster. Stattdessen nach dem Einschalten <b>innerhalb von 5 Sekunden</b> erneut vom Strom trennen und wieder einschalten. Dann öffnet sich das Portal und die LED blinkt schnell.</li>
+      </ol>
+      <p>Die Server-Einstellungen liegen im Flash (LittleFS, Datei <code>/server.cfg</code>).</p>
+
+      <h3>Sicherheit</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Das Passwort der Einrichtungs-Access-Points ist für alle Geräte gleich (<code>ors-setup</code>, in der Firmware <code>CONFIG_AP_PASSWORD</code>). Wer es kennt, kann ein Gerät im Einrichtungsmodus umkonfigurieren. Für den Dauerbetrieb ein eigenes Passwort setzen und neu flashen.</li>
+        <li>Die Einrichtungsseite hat keine eigene Anmeldung. Sie ist nur erreichbar, solange das Portal offen ist.</li>
+        <li><code>/api/sim/status</code> ist bewusst ohne Login erreichbar. Er liefert nur, ob eine Übung läuft, ihren Namen, Startzeit und Raum sowie die Nummer eines laufenden Vor-Starts.</li>
+      </ul>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="teilnehmer" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>📝 Teilnehmer-Notizblätter</h2>
+      <p>Teilnehmer füllen auf dem eigenen Handy oder Tablet ein Notizblatt im Layout des AMLS-Einsatzformulars aus. Verknüpft mit der Session erscheinen die Einträge live als Marker beim Ausbilder.</p>
+
+      <h3>Notizblatt anlegen und verteilen (Ausbilder)</h3>
+      <ol class="steps-list">
+        <li>Menü <span class="ui">Teilnehmer</span> öffnen.</li>
+        <li>Namen eingeben (zum Beispiel „Gruppe 2 – Max“) und <span class="ui">＋ Anlegen</span> klicken. Der QR-Code öffnet sich sofort.</li>
+        <li>QR-Code zeigen oder <span class="ui">Link kopieren</span>. Der Link funktioniert ohne Login; wer ihn hat, kann das Blatt ausfüllen.</li>
+        <li>In der Liste zeigt eine Badge, ob das Blatt mit einer Session verknüpft ist. <span class="ui">Öffnen</span> zeigt das Blatt, <span class="ui">Ansicht/Druck</span> die Druckansicht, <span class="ui">Lösen</span> trennt die Verknüpfung, <span class="ui">Löschen</span> macht den Link ungültig.</li>
+      </ol>
+
+      <h3>Ausfüllen und verknüpfen (Teilnehmer)</h3>
+      <ol class="steps-list">
+        <li>Link öffnen. Felder ausfüllen, gespeichert wird automatisch beim Verlassen eines Feldes. Die Leiste oben bestätigt „✓ gespeichert“.</li>
+        <li>Startet der Ausbilder eine Simulation, erscheint das Fenster <b>Neue Simulation gestartet</b>. <span class="ui">Ja, verknüpfen</span> sendet ab jetzt jede Notiz als Marker, <span class="ui">Nein</span> lässt das Blatt privat. Die Frage kommt pro Simulation nur einmal.</li>
+        <li>Die Marker erscheinen beim Ausbilder unter dem Nutzer <b>Teilnehmer</b> im Format „Blattname: Feld: Wert“. Eine grüne Badge „verknüpft mit …“ zeigt den Zustand, <span class="ui">Verknüpfung lösen</span> beendet ihn.</li>
+        <li><span class="ui">🗑 Zurücksetzen</span> löscht nach Rückfrage alle Eingaben. Bereits gesetzte Marker bleiben erhalten.</li>
+        <li><span class="ui">📲 QR-Code zum Download</span> zeigt einen Code zur Druckansicht des ausgefüllten Blattes. Dort: <span class="ui">🖨 Drucken / PDF</span> oder <span class="ui">💾 Als HTML speichern</span> für eine eigenständige Datei.</li>
+      </ol>
+      <div class="tip">Endet die Session, zeigt das Blatt „beendet“ und erzeugt keine Marker mehr. Bei der nächsten Session fragt es erneut.</div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="debrief" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🎞 Debriefing</h2>
+      <p>Seite <span class="ui">Debriefen</span>. Hier wird eine Aufzeichnung auf einem Viewer abgespielt und über Marker gesteuert.</p>
+      <h3>Aufzeichnung laden</h3>
+      <ol class="steps-list">
+        <li><span class="ui">Session laden</span> klicken. Das Fenster <b>Sitzung wählen</b> listet die verfügbaren Sessions als Kacheln mit Session-ID.</li>
+        <li>Eine Session anklicken. Name, Dauer und der Aufnahme-Link erscheinen in den Kacheln, die Marker erscheinen rechts und auf der Zeitleiste.</li>
+        <li>Unter <b>Player</b> den Viewer wählen, der das Video zeigen soll. Die Zahl bei <b>Online</b> zeigt verbundene Viewer.</li>
+      </ol>
+      <h3>Wiedergabe steuern</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Gruppe <b>Wiedergabe</b>: <span class="ui">−30 s</span>, <span class="ui">Play</span>, <span class="ui">Pause</span>, <span class="ui">+30 s</span>.</li>
+        <li>Gruppe <b>Anzeige</b>: <span class="ui">Bild aus</span> schaltet das Bild am Viewer schwarz, <span class="ui">Lautstärke</span> öffnet einen Regler mit <span class="ui">Bestätigen</span>, <span class="ui">Vollbild</span> schaltet den Viewer in den Vollbildmodus.</li>
+        <li><b>Zeitleiste</b>: Klick springt zur Position, die Punkte sind Marker. Beim Überfahren erscheint die Zeit.</li>
+      </ul>
+      <h3>Mit Markern arbeiten</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Klick auf einen Marker in der Liste oder auf der Zeitleiste springt zu seiner Zeit, abzüglich des <b>Marker-Vorlaufs</b>.</li>
+        <li><b>Marker-Vorlauf</b> (0 bis 120 s) per Regler, <span class="ui">−30s</span>/<span class="ui">−10s</span>/<span class="ui">+10s</span>/<span class="ui">+30s</span> oder Feinwert einstellen. So sieht man, was vor dem Ereignis passierte.</li>
+        <li><b>Sortierung</b> nach Zeit oder nach User, <span class="ui">↻</span> lädt Marker neu.</li>
+        <li><b>Nur Vorauswahl</b> blendet alle Marker aus, die nicht als Vorauswahl markiert wurden. Vorausgewählte Marker sind mit einem pulsierenden Rahmen hervorgehoben.</li>
+        <li>Klick auf einen Marker-Text öffnet <b>Marker Details</b> mit dem vollständigen Text.</li>
+      </ul>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="sessions" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🗂 Sessions verwalten</h2>
+      <h3>Wer sieht welche Sessions?</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><b>Nutzer</b> sehen die aktive Session und beendete Sessions der letzten <b>24 Stunden</b>.</li>
+        <li><b>Admins</b> sehen alle Sessions. Vorschaubilder und Aufnahmen folgen derselben Regel.</li>
+      </ul>
+      <h3>Sessions löschen</h3>
+      <ol class="steps-list">
+        <li>Grauen <span class="ui">Sessions löschen</span>-Knopf (FAB) klicken oder <kbd class="kbd kbd-sm">Strg</kbd>+<kbd class="kbd kbd-sm">Entf</kbd>.</li>
+        <li>Sessions per Häkchen wählen, <span class="ui">Alle auswählen</span> oder <span class="ui">↻ Aktualisieren</span> nutzen.</li>
+        <li><span class="ui">Ausgewählte löschen</span> oder <span class="ui">Alles löschen</span> klicken. Mit der Session werden Marker, Aufnahmedateien und VOD-Dateien endgültig entfernt.</li>
+      </ol>
+      <div data-level="admin">
+        <h3>Aufnahmen herunterladen <span class="admin-badge">Admin</span></h3>
+        <ol class="steps-list">
+          <li><span class="ui">Einstellungen</span> → Reiter <span class="ui">Aufnahme &amp; Ausgabe</span> → <b>VOD Downloads</b> → <span class="ui">Öffnen</span>.</li>
+          <li>Session im Auswahlfeld wählen und <span class="ui">↻ VOD laden</span> klicken.</li>
+          <li>Die Dateien der Session werden als Download-Links angezeigt.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="systemstatus" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🖥️ Systemstatus</h2>
+      <p><span class="ui">Optionen</span> → <span class="ui">Systemstatus</span>, erste Seite im Optionen-Bereich. Oben die Reiterleiste zu Einstellungen, Nutzer-Stats und Achievements.</p>
+      <h3>Werte lesen</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><b>Performance</b>: CPU, Speicher, Last und Laufzeit des Servers. <b>Netzwerk</b>: Adressen und Schnittstellen. <b>Externer Verteiler</b>: Zustand des optionalen RTMP-Ausgangs (aus, verbindet, sendet, Fehler). Die Versionsnummer steht im Kopf.</li>
+        <li><b>🔒 HTTPS</b> (nur Admin): Zustand von HTTPS und Gültigkeit des Zertifikats, Einrichten/Erneuern per Knopf, Download und QR-Code für das Wurzelzertifikat (siehe <a href="#https">HTTPS einrichten</a>).</li>
+        <li><b>Über OpenRescueSim &amp; Lizenzen</b>: Projektlizenz (GPLv3) und die verwendeten Fremdbestandteile mit ihren Lizenzen; <span class="ui">Alle Lizenztexte</span> zeigt die vollständigen Texte.</li>
+        <li><span class="ui">↻ Aktualisieren</span> lädt alle Werte neu; sie werden sonst automatisch aktualisiert.</li>
+        <li><b>Service-Logs</b> zeigen die letzten Logzeilen live.</li>
+      </ul>
+      <h3>Logs weitergeben und Änderungen nachlesen</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><span class="ui">Log per Mail</span> kopiert das aktuelle Live-Log in die Zwischenablage und öffnet einen E-Mail-Entwurf an die hinterlegte Adresse. Text mit <kbd class="kbd kbd-sm">Strg</kbd>+<kbd class="kbd kbd-sm">V</kbd> einfügen.</li>
+        <li><span class="ui">Updates anzeigen</span> öffnet das Änderungsprotokoll der App.</li>
+      </ul>
+      <p>Bricht die Verbindung zum Server ab, legt sich ein Hinweis mit Countdown über die Seite. Sie verbindet sich automatisch wieder.</p>
+      <div data-level="admin">
+        <h3>Systemaktionen <span class="admin-badge">Admin</span></h3>
+        <ul class="list-disc pl-6 space-y-1">
+          <li><span class="ui">🔁 Systemdienst neu starten</span> startet nur die App neu. Laufende Session wird beendet.</li>
+          <li><span class="ui">🔄 Server neu starten</span> und <span class="ui">⏻ Server herunterfahren</span> wirken auf das ganze Gerät und fragen vorher nach.</li>
+        </ul>
+        <h3>Logdateien <span class="admin-badge">Admin</span></h3>
+        <ol class="steps-list">
+          <li><span class="ui">Dateien</span> neben den Service-Logs klicken. Das Fenster <b>Logdateien</b> listet die täglichen Logdateien.</li>
+          <li>Je Datei: herunterladen, <span class="ui">📱 QR</span> (siehe unten) oder <span class="ui">Per Mail</span>, was einen Entwurf mit den letzten 300 Zeilen erzeugt.</li>
+          <li>Unten die Standard-Empfängeradresse eintragen und <span class="ui">E-Mail speichern</span> klicken. Sie gilt dann auch für <span class="ui">Log per Mail</span>.</li>
+        </ol>
+
+        <h3>Logauszug als QR-Code <span class="admin-badge">Admin</span></h3>
+        <p>Für Fälle ohne jede Netzwerkverbindung beim Empfänger (Handy darf nicht ins Server-LAN, keine Mobilfunk-/Internetverbindung garantiert): <span class="ui">📱 QR</span> neben einer Logdatei öffnet einen QR-Code, der die Daten <b>selbst</b> enthält — kein Link, also auch ohne Netzwerk abfotografierbar.</p>
+        <ul class="list-disc pl-6 space-y-1">
+          <li>Ein QR-Code fasst nur ca. 2 KB. Es passt deshalb nie die komplette Datei hinein, sondern immer nur ein Auszug der <b>neuesten</b> Zeilen bis zu diesem Platzlimit.</li>
+          <li>Häkchen <span class="ui">Nur Fehler/Warnungen</span> filtert vorher auf <code>WARN</code>/<code>ERROR</code>-Zeilen — bei knappem Platz passen so mehr relevante Zeilen hinein als bei allen Zeilen inklusive Info-Meldungen.</li>
+          <li>Die Anzeige unter dem Code zeigt, wie viele von wie vielen Zeilen enthalten sind. Für die vollständige Datei bleibt nur Download oder Mail (siehe oben) — das braucht aber eine Netzwerkverbindung.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="kameras" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>📷 Kameras &amp; Räume</h2>
+      <p><span class="ui">Einstellungen</span> → Reiter <span class="ui">Kameras &amp; Räume</span>. Ansehen dürfen alle Nutzer, Ändern von Kameras nur Admins.</p>
+
+      <h3>Kamera anlegen <span class="admin-badge">Admin</span></h3>
+      <ol class="steps-list" data-level="admin">
+        <li><span class="ui">Kameras verwalten</span> klicken. Das Fenster zeigt links <b>Alle Kameras</b>.</li>
+        <li>Unter <b>Neue Kamera hinzufügen</b>: Name, <b>Stream-URL</b> (RTSP oder RTMP, zum Beispiel <code>rtsp://user:pass@192.168.1.10:554/stream</code>), optional eine <b>MJPEG-URL</b> für Vorschaubilder, Häkchen <span class="ui">Kamera aktiv</span>.</li>
+        <li>Speichern. Die Kamera erscheint in der Liste und kann Räumen zugeordnet werden.</li>
+      </ol>
+      <p class="expert-hint text-sm text-base-content/70">Kameras werden von Admins angelegt. Als Nutzer siehst du die Übersicht und kannst Räume mit vorhandenen Kameras nutzen.</p>
+
+      <h3>Kamera bearbeiten <span class="admin-badge">Admin</span></h3>
+      <ul class="list-disc pl-6 space-y-1" data-level="admin">
+        <li>Kamera in der Liste anklicken. Unter <b>Kamera bearbeiten</b> lassen sich <b>Slot</b> (Position im Bild), Name, URL, MJPEG-URL und <b>aktiv</b> ändern.</li>
+        <li>Ein Vorschaubild kann über die Snapshot-Funktion geladen werden, um die URL zu prüfen.</li>
+        <li>Löschen entfernt die Kamera. Räume, die sie nutzen, zeigen an dieser Stelle ein Schwarzbild.</li>
+      </ul>
+
+      <h3>Hersteller &amp; PTZ (bewegliche Kameras) <span class="admin-badge">Admin</span></h3>
+      <ol class="steps-list" data-level="admin">
+        <li>Im Kamera-Formular unter <b>Hersteller &amp; PTZ</b> den Hersteller wählen. Aktuell wird <b>Axis (VAPIX)</b> unterstützt, weitere Hersteller können später ergänzt werden.</li>
+        <li>Häkchen <span class="ui">Beweglich (PTZ)</span> setzen, dann <b>VAPIX-Benutzer</b>, <b>VAPIX-Passwort</b> und optional den <b>Port</b> (Standard 80) eintragen. Diese Zugangsdaten sind von der normalen Stream-URL/dem Kamera-Login getrennt.</li>
+        <li>Das Passwortfeld bleibt beim späteren Bearbeiten immer leer (aus Sicherheitsgründen liefert die API Zugangsdaten nie zurück) — leer lassen beim Speichern behält das vorhandene Passwort bei, nur eine neue Eingabe überschreibt es.</li>
+        <li>Basic-Auth muss in den Netzwerkeinstellungen der Axis-Kamera aktiviert sein, sonst schlägt die Steuerung mit einem Verbindungsfehler fehl.</li>
+      </ol>
+
+      <h3>Kamerasteuerung (Pan/Tilt/Zoom)</h3>
+      <p>Als PTZ markierte Kameras kann <b>jeder eingeloggte Nutzer</b> bedienen — Einrichten/Löschen der Kamera bleibt admin-only, das Schwenken/Zoomen nicht. Die Seite <span class="ui">Kamera</span> (Sidebar bzw. Dashboard-Kachel „Kamerasteuerung“, URL <code>/ui/camera-control</code>) zeigt alle PTZ-fähigen Kameras als Kacheln mit Vorschaubild.</p>
+      <ol class="steps-list">
+        <li>Kamera-Kachel antippen/anklicken, um zur Steuerung zu wechseln.</li>
+        <li>Steuerkreuz gedrückt halten (Maus oder Touch) für Pan/Tilt, loslassen stoppt die Bewegung. Zoom-Buttons funktionieren genauso.</li>
+        <li>Gedacht für ein zweites Gerät (z.B. iPad) neben der eigentlichen Simulations-Steuerung — die Seite ist unabhängig von einer laufenden Session nutzbar, auch um Kameras vor dem Start auszurichten.</li>
+      </ol>
+
+      <h3>Raum anlegen</h3>
+      <ol class="steps-list">
+        <li><span class="ui">Räume verwalten</span> klicken.</li>
+        <li>Name eingeben (zum Beispiel „Übungsraum 1“) und <b>Layout</b> wählen: <span class="ui">1</span> Vollbild, <span class="ui">2x2</span> Vierfach, <span class="ui">1+3</span> ein großes Bild links mit drei kleinen rechts, und weitere.</li>
+        <li>Je <b>Slot</b> eine Kamera zuordnen oder leer lassen (Schwarzbild mit Beschriftung).</li>
+        <li>Optional <b>Audio</b>-Eingänge für den Raum wählen. Je Eingang gibt es Gerät, Label, Gain und <b>Kanäle</b>: leer = alle Kanäle des Interfaces zusammen (Mono), <code>3</code> = nur Eingang 3, <code>1,2</code> = Stereo aus Eingang 1 links und 2 rechts, <code>1-8</code> = Eingänge 1 bis 8 gemischt. Daneben steht die Kanalzahl des Geräts. Dazu ein <b>Standard-Viewer</b>, der beim Start automatisch den Stream bekommt.</li>
+        <li>Optional unter <b>Lautsprecher</b> die Raumlautsprecher ankreuzen, die zu diesem Raum gehören – unabhängig von ihrer Gruppe. Läuft eine Session in diesem Raum, steht im Durchsage-Dialog das Ziel <b>🏠 Raum …</b> bereit (siehe <a class="link" href="#audio">Audio &amp; Durchsagen</a>). Die Raumliste zeigt die Anzahl als 🔊.</li>
+        <li>Speichern. Der Raum ist im Start-Dialog und beim Live-Raumwechsel wählbar.</li>
+      </ol>
+
+      <h3>Raumlautsprecher</h3>
+      <p>Der Kasten <b>Raumlautsprecher</b> listet alle angemeldeten Durchsage-Geräte. Einrichtung und Bedienung stehen unter <a class="link" href="#audio">Audio &amp; Durchsagen</a>.</p>
+
+      <h3>Aktive Viewer</h3>
+      <p>Der Kasten <b>Aktive Viewer</b> listet alle verbundenen Viewer mit Alias und Status.</p>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="anzeige" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>📰 Anzeige &amp; Marker</h2>
+      <p><span class="ui">Einstellungen</span> → Reiter <span class="ui">Anzeige &amp; Marker</span>.</p>
+      <h3>Ticker auf den Viewern</h3>
+      <ol class="steps-list">
+        <li>Im Kasten <b>Viewer Overlay</b> unter <b>Ticker</b> je Zeile eine Nachricht eintragen.</li>
+        <li><span class="ui">💾 Ticker speichern</span> klicken. <span class="ui">↻ Laden</span> holt den gespeicherten Stand zurück.</li>
+      </ol>
+      <h3>Trivia-Bilder (Slideshow im Ruhezustand)</h3>
+      <ol class="steps-list">
+        <li>Bilddatei wählen, optional Titel eingeben, <span class="ui">Hochladen</span> klicken.</li>
+        <li>Die Liste zeigt alle Bilder mit Löschen-Schaltfläche. Viewer zeigen sie im Wechsel, wenn keine Session läuft.</li>
+      </ol>
+      <h3>Marker-Typen</h3>
+      <p><span class="ui">Marker-Typen verwalten</span> öffnet dasselbe Fenster wie auf der Simulieren-Seite, siehe <a class="link" href="#marker-typen">Marker-Typen &amp; Textbausteine</a>.</p>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="aufnahme" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3" data-level="admin">
+      <h2>🎬 Aufnahme &amp; Ausgabe <span class="admin-badge">Admin</span></h2>
+      <p><span class="ui">Einstellungen</span> → Reiter <span class="ui">Aufnahme &amp; Ausgabe</span>. Änderungen mit <span class="ui">💾</span> speichern, <span class="ui">↻</span> lädt den gespeicherten Stand. Viele Änderungen greifen erst beim nächsten Session-Start oder nach <span class="ui">Pipeline neu bauen</span>.</p>
+      <h3>Recording</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><b>Record-Verzeichnis</b> (Standard: App-Datenordner/recordings), <b>Dateiprefix</b>, <b>Container</b> (mp4, mkv, mov), <b>Segment</b> in Sekunden (Standard 300) und <b>Max Files</b> (0 = unbegrenzt).</li>
+      </ul>
+      <h3>Ausgabe &amp; Audio</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><b>Externer Verteiler (RTMP, optional)</b>: Adresse eines Streaming-Servers (z.B. MediaMTX, nginx-rtmp, Owncast), an den Bild und Ton während einer Session zusätzlich gesendet werden, z.B. <code>rtmp://streamserver/live/uebung</code>. Leer lassen = aus. Beim Vor-Start wird nichts gesendet. Ist der Verteiler nicht erreichbar oder fällt er aus, läuft die Übung normal weiter; die Oberfläche zeigt einen Hinweis, den Zustand zeigt die Karte „Externer Verteiler“ im Systemstatus. Einen neuen Verbindungsversuch gibt es erst mit der nächsten Session.</li>
+        <li><b>Audio-Device</b>, zum Beispiel <code>plughw:1,0</code>. Leer bedeutet Standardgerät.</li>
+        <li><span class="ui">Pipeline neu bauen</span> wendet Audio- und Ausgabeänderungen sofort an. Laufende Sessions werden dabei unterbrochen.</li>
+      </ul>
+      <h3>Update ohne APT</h3>
+      <ol class="steps-list">
+        <li>Neue Server-Datei über <span class="ui">Hochladen</span> auf den Server laden. <span class="ui">↻ Dateien</span> zeigt hochgeladene Dateien.</li>
+        <li>Die gewünschte Datei installieren. Der Dienst startet danach neu.</li>
+      </ol>
+      <h3>VOD Downloads</h3>
+      <p><span class="ui">Öffnen</span> zeigt das Fenster zum Herunterladen von Aufnahmen, siehe <a class="link" href="#sessions">Sessions verwalten</a>.</p>
+      <h3>Logfiles aufräumen</h3>
+      <p>Anzahl Tage eintragen und <span class="ui">Jetzt aufräumen</span> klicken. Ältere Logdateien werden gelöscht.</p>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="benutzer" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>👤 Benutzer &amp; Zugang</h2>
+      <p><span class="ui">Einstellungen</span> → Reiter <span class="ui">Benutzer &amp; Zugang</span>. Enthält die Selbstregistrierung per Token für alle sowie die Benutzerverwaltung für Admins. Die Schritte stehen unter <a class="link" href="#anmeldung">Anmeldung &amp; Konten</a>.</p>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="stats" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>📊 Nutzer-Stats &amp; Achievements</h2>
+      <h3>Nutzer-Stats</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><span class="ui">Optionen</span> → <span class="ui">Nutzer-Stats</span> zeigt eigene Kennzahlen: Marker, Simulationen, Debriefings, letzte Aktivität und Fortschrittsbalken zum nächsten Achievement.</li>
+        <li><span class="ui">↻ Aktualisieren</span> lädt neu.</li>
+        <li data-level="admin"><b>Admin: Alle User</b> <span class="admin-badge">Admin</span> listet die Kennzahlen aller Nutzer seitenweise mit <span class="ui">Zurück</span>/<span class="ui">Weiter</span>.</li>
+      </ul>
+      <h3>Achievements</h3>
+      <p>Unter <span class="ui">Optionen</span> → <span class="ui">Achievements</span> stehen alle erreichten Erfolge. Neue Erfolge erscheinen als Toast. Es gibt unter anderem:</p>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Achievement</th><th>Bedingung</th></tr></thead>
+          <tbody>
+            <tr><td>Erster Marker / Erster Start / Erstes Debriefing</td><td>Jeweils die erste Aktion.</td></tr>
+            <tr><td>Marker 25 … 1000, Simulationen 25 … 1000, Debriefings 25 … 1000</td><td>Stufen bei 25, 50, 100, 200, 300, 400, 500 und 1000.</td></tr>
+            <tr><td>Kommentator I / II</td><td>10 bzw. 50 Marker mit Text.</td></tr>
+            <tr><td>Schnellschuss</td><td>Marker innerhalb der ersten Minute einer Session.</td></tr>
+            <tr><td>Blitzrunde / Marathon</td><td>Simulation kürzer als 5 Minuten bzw. länger als 2 Stunden.</td></tr>
+            <tr><td>Nachteule / Frühaufsteher</td><td>Marker zwischen 02:00–04:59 bzw. 06:00–08:59.</td></tr>
+            <tr><td>Nachtschicht / Frühstarter</td><td>Simulation zwischen 00:00–03:59 bzw. 05:00–07:59 gestartet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="https" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🔐 HTTPS einrichten (für Durchsagen)</h2>
+      <p>Nur die Geräte, von denen aus gesprochen wird, brauchen HTTPS. Viewer, Pager, Notizblätter und Raumlautsprecher laufen weiter über <code>http://…:8393</code>.</p>
+      <h3>Für Ausbilder: Gerät einmalig vorbereiten</h3>
+      <ol class="steps-list">
+        <li>Auf dem iPad in Safari <code>http://&lt;server&gt;:8393/ca/ors-rootCA.crt</code> öffnen oder den QR-Code auf der Systemseite (Karte <b>🔒 HTTPS</b>) scannen. Es erscheint „Profil geladen“.</li>
+        <li>Einstellungen öffnen, das geladene Profil <b>installieren</b>.</li>
+        <li>Unter <b>Allgemein → Info → Zertifikatsvertrauen</b> den Schalter für das OpenRescueSim-Zertifikat einschalten.</li>
+        <li><code>https://&lt;server&gt;.local:8443/ui</code> öffnen und als Lesezeichen sichern. Der PTT-Knopf hat jetzt Mikrofonzugriff.</li>
+      </ol>
+      <p>Windows: Datei doppelklicken, „Zertifikat installieren“, Lokaler Computer, „Vertrauenswürdige Stammzertifizierungsstellen“. macOS: Datei in den Schlüsselbund ziehen und auf „Immer vertrauen“ setzen.</p>
+      <div data-level="admin">
+        <h3>Für Admins: Server einrichten <span class="admin-badge">Admin</span></h3>
+        <ol class="steps-list">
+          <li><b>Aus der Oberfläche:</b> <span class="ui">Optionen</span> → <span class="ui">Systemstatus</span>, Karte <b>🔒 HTTPS</b>. Optional Namen und IPs eintragen (z.B. <code>ors.local, 192.168.1.20</code>) und <span class="ui">🔒 HTTPS einrichten / erneuern</span> drücken. Das Log läuft live mit; am Ende startet der Dienst neu und die Seite verbindet sich von selbst wieder. Die Karte zeigt auch, ob HTTPS aktiv ist und bis wann das Zertifikat gilt.</li>
+          <li><b>Alternativ auf dem Server:</b> <code>sudo ./scripts/setup_https.sh</code>, optional mit Namen und IPs, etwa <code>sudo ./scripts/setup_https.sh ors.local 192.168.1.20</code>.</li>
+          <li>Das Skript erzeugt eine lokale Zertifizierungsstelle, ein Serverzertifikat für 825 Tage, legt das Wurzelzertifikat zum Download ab und setzt <code>ORS_TLS_CERT</code>, <code>ORS_TLS_KEY</code> und <code>ORS_TLS_BIND</code> für den Dienst.</li>
+          <li>Der Dienst wird neu gestartet und lauscht zusätzlich auf Port 8443. Im Log steht „Listening on https://…“.</li>
+          <li>Nach 825 Tagen das Skript erneut ausführen. Das Wurzelzertifikat auf den Geräten bleibt gültig.</li>
+        </ol>
+        <div class="tip">Rechte: Läuft der Dienst nicht als root, erlaubt die vom Debian-Paket installierte Regel <code>/etc/sudoers.d/openresquesim</code> genau diesen einen Aufruf. Fehlt sie, meldet die Karte „Ohne Rechte“. Ohne Internet müssen <code>mkcert</code> und <code>libnss3-tools</code> installiert sein (Abhängigkeiten des Pakets).</div>
+        <div class="tip">Immer denselben Hostnamen verwenden, der im Zertifikat steht. <code>&lt;hostname&gt;.local</code> löst über Avahi/Bonjour auf, das Skript aktiviert den Dienst mit.</div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="faq" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>🧰 Fehlerbehebung</h2>
+      <div class="space-y-3">
+        <details class="collapse collapse-arrow bg-base-300/40"><summary class="collapse-title font-semibold">Rote Statusleiste „Einloggen“ oder Meldung 401</summary><div class="collapse-content text-sm"><p>Die Anmeldung fehlt oder ist abgelaufen. Oben rechts einloggen, die Seite lädt danach neu. Viewer-, QR- und Teilnehmer-Seiten brauchen keinen Login.</p></div></details>
+        <details class="collapse collapse-arrow bg-base-300/40"><summary class="collapse-title font-semibold">Kamera zeigt Schwarzbild mit Beschriftung</summary><div class="collapse-content text-sm"><p>Die Kamera liefert kein Bild: URL, Netzwerk und Zugangsdaten prüfen. RTSP-Kameras versucht der Server selbst neu zu verbinden. Beim Raumwechsel ist ein kurzes Schwarzbild normal.</p></div></details>
+        <details class="collapse collapse-arrow bg-base-300/40"><summary class="collapse-title font-semibold">„Pipeline busy“ oder Start dauert lange</summary><div class="collapse-content text-sm"><p>Die Pipeline ist gerade im Umbau. Einige Sekunden warten und erneut versuchen. Hilft das nicht, <b>Notfall-Neustart</b> oder als Admin <b>Systemdienst neu starten</b>.</p></div></details>
+        <details class="collapse collapse-arrow bg-base-300/40"><summary class="collapse-title font-semibold">Zuschauer sehen den Stream nicht</summary><div class="collapse-content text-sm"><p>QR-Link muss die Netzwerk-IP des Servers enthalten, nicht localhost. Handy und Server müssen im selben Netz sein. Für sehr viele Zuschauer das Bild über den <b>externen Verteiler (RTMP)</b> an einen Streaming-Server geben, der es weiterverteilt.</p></div></details>
+        <details class="collapse collapse-arrow bg-base-300/40"><summary class="collapse-title font-semibold">Marker-Tastenkürzel reagiert nicht</summary><div class="collapse-content text-sm"><p>Ist ein Eingabefeld aktiv, wirken nur F13–F24. Zudem muss eine Session laufen. Im Fenster „Marker-Typen verwalten“ prüfen, ob die Taste zugewiesen ist.</p></div></details>
+        <details class="collapse collapse-arrow bg-base-300/40"><summary class="collapse-title font-semibold">Raumlautsprecher ist offline oder hört nichts</summary><div class="collapse-content text-sm"><p>Auf dem Pi <code>journalctl -u ors-speaker -f</code> ansehen: stimmt die Server-Adresse in <code>/etc/ors-speaker.conf</code>? Zeigt die Liste „online“, aber nicht „empfängt“, passt die Gruppe nicht zur PTT-Auswahl oder UDP-Port 5004 ist blockiert. Kein Ton trotz „empfängt“: ALSA-Gerät prüfen (<code>aplay -l</code>) und Testton auslösen.</p></div></details>
+        <details class="collapse collapse-arrow bg-base-300/40"><summary class="collapse-title font-semibold">Audio-Interface mit vielen Eingängen liefert nur Kanal 1 und 2</summary><div class="collapse-content text-sm"><p>Der Server öffnet Interfaces wie die Scarlett 18i20 jetzt mit allen Kanälen und mischt selbst. Im Audio-Eingang das Feld <b>Kanäle</b> setzen, etwa <code>5,6</code> für ein Stereo-Mikrofonpaar an Eingang 5 und 6. Bleibt die Kanalzahl „?“, konnte der Server das Gerät nicht abfragen: <code>arecord -l</code> prüfen und die Karte als <code>plughw:X,0</code> eintragen. Für die Routing-Matrix der Scarlett Gen 4 braucht der Kernel den Treiber <code>scarlett2</code> (ab 6.8).</p></div></details>
+        <details class="collapse collapse-arrow bg-base-300/40"><summary class="collapse-title font-semibold">Ältere Sessions fehlen im Debriefing</summary><div class="collapse-content text-sm"><p>Nutzer sehen nur Sessions der letzten 24 Stunden. Admins sehen alle.</p></div></details>
+        <details class="collapse collapse-arrow bg-base-300/40"><summary class="collapse-title font-semibold">Aufnahmefehler-Toast während der Session</summary><div class="collapse-content text-sm"><p>Der Server meldet Probleme im Aufnahmezweig direkt als Toast. Session stoppen, Speicherplatz und Aufnahmeverzeichnis prüfen, dann neu starten. Admins finden Details in den Service-Logs.</p></div></details>
+        <details class="collapse collapse-arrow bg-base-300/40" data-level="admin"><summary class="collapse-title font-semibold">Server startet nicht <span class="admin-badge">Admin</span></summary><div class="collapse-content text-sm"><p>Meist fehlen GStreamer-Pakete. Mit <code>gst-inspect-1.0 --version</code> prüfen und <code>sudo ./scripts/install_runtime_deps.sh</code> ausführen. Logs erscheinen auf stdout bzw. in den täglichen Logdateien.</p></div></details>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="glossar" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
+      <h2>📖 Glossar</h2>
+      <dl class="grid md:grid-cols-[12rem_1fr] gap-x-4 gap-y-2 text-sm">
+        <dt class="font-semibold">Session</dt><dd>Eine aufgezeichnete Simulation mit Name, Start, Dauer, Markern und Aufnahme.</dd>
+        <dt class="font-semibold">Marker</dt><dd>Zeitmarke innerhalb einer Session mit Typ, Farbe und optionalem Text.</dd>
+        <dt class="font-semibold">Marker-Typ</dt><dd>Kategorie für Marker, als Standard oder persönlich, mit Farbe und optionaler Taste.</dd>
+        <dt class="font-semibold">Viewer</dt><dd>Anzeigegerät, das die Viewer-Seite geöffnet hat und Stream, Ruhebild oder Aufzeichnung zeigt.</dd>
+        <dt class="font-semibold">Raum</dt><dd>Vordefinierte Kombination aus Layout, Kameras je Slot, Audio-Gerät, Raumlautsprechern und Standard-Viewer.</dd>
+        <dt class="font-semibold">Slot / Layout</dt><dd>Position einer Kamera im zusammengesetzten Bild bzw. die Anordnung aller Slots.</dd>
+        <dt class="font-semibold">Pipeline</dt><dd>Die Verarbeitungskette aus Kameras, Mischer, Encoder, Aufnahme und Streams.</dd>
+        <dt class="font-semibold">VOD</dt><dd>Die fertige Aufnahmedatei einer Session für das Debriefing.</dd>
+        <dt class="font-semibold">WebRTC / RTSP / RTMP</dt><dd>Übertragungswege: WebRTC zum Browser der Zuschauer, RTSP von den Kameras, RTMP zu einem Streaming-Server.</dd>
+        <dt class="font-semibold">PTT / Voice of Room</dt><dd>Durchsage per gedrückter Taste vom Browser an die Raumlautsprecher (Raspberry Pi) und optional an Viewer.</dd>
+        <dt class="font-semibold">Vor-Start</dt><dd>Vorbereitete Session, die erst mit „Freigeben“ wirklich startet.</dd>
+        <dt class="font-semibold">Teilnehmer-Notizblatt</dt><dd>Formular für Teilnehmer, dessen Einträge verknüpft als Marker erscheinen.</dd>
+      </dl>
+      <p class="text-xs text-base-content/50 pt-4">OpenRescueSim · Hilfe · Stand September 2026</p>
+    </section>
+  </main>
+</div>
+
+<script>
+  (function () {
+    var KEY = 'ors_help_expert';
+    var toggle = document.getElementById('expertToggle');
+    function apply(on) {
+      document.body.classList.toggle('expert', !!on);
+      toggle.checked = !!on;
+      try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (_) {}
+    }
+    var initial = false;
+    try { initial = localStorage.getItem(KEY) === '1'; } catch (_) {}
+    if (/[?&]expert=1/.test(location.search)) initial = true;
+    apply(initial);
+    toggle.addEventListener('change', function () { apply(toggle.checked); });
+
+    // Aktiven TOC-Eintrag beim Scrollen markieren
+    var links = Array.prototype.slice.call(document.querySelectorAll('.help-toc a[href^="#"]'));
+    var sections = links.map(function (a) { return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+    function markActive() {
+      var y = window.scrollY + 120, current = sections[0];
+      for (var i = 0; i < sections.length; i++) { if (sections[i].offsetTop <= y) current = sections[i]; }
+      links.forEach(function (a) { a.classList.toggle('active', current && a.getAttribute('href') === '#' + current.id); });
+    }
+    window.addEventListener('scroll', markActive, { passive: true });
+    markActive();
+
+    // Suche: blendet Abschnitte ohne Treffer aus
+    var search = document.getElementById('helpSearch');
+    var empty = document.getElementById('searchEmpty');
+    function runSearch() {
+      var q = (search.value || '').trim().toLowerCase();
+      var all = document.querySelectorAll('.help-section');
+      if (!q) {
+        document.body.classList.remove('searching');
+        all.forEach(function (s) { s.classList.remove('help-search-hit'); });
+        empty.classList.add('hidden');
+        return;
+      }
+      var hits = 0;
+      all.forEach(function (s) {
+        var visible = document.body.classList.contains('expert') || s.getAttribute('data-level') !== 'admin';
+        var hit = visible && s.textContent.toLowerCase().indexOf(q) !== -1;
+        s.classList.toggle('help-search-hit', hit);
+        if (hit) hits++;
+      });
+      document.body.classList.add('searching');
+      empty.classList.toggle('hidden', hits > 0);
+    }
+    search.addEventListener('input', runSearch);
+    search.addEventListener('keydown', function (e) { if (e.key === 'Escape') { search.value = ''; runSearch(); } });
+  })();
+</script>
+</body>
+</html>

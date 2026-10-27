@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .cc-pad {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(64px, 96px));
+    grid-template-rows: repeat(3, minmax(64px, 96px));
+    gap: 0.5rem;
+    justify-content: center;
+  }
+  .cc-pad-btn {
+    font-size: 1.6rem;
+    border-radius: 0.75rem;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  .cc-pad-btn:active,
+  .cc-pad-btn.cc-active {
+    filter: brightness(1.35);
+  }
+  .cc-zoom-btn {
+    font-size: 1.8rem;
+    width: 96px;
+    height: 72px;
+    border-radius: 0.75rem;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  .cc-cam-card {
+    cursor: pointer;
+  }
+  .cc-cam-card img {
+    aspect-ratio: 16/9;
+    object-fit: cover;
+  }
+</style>
+
+<div class="space-y-6">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-3xl font-bold text-white">🎮 Kamerasteuerung</h1>
+      <p class="text-gray-400 text-sm">
+        Pan/Tilt/Zoom für bewegliche Kameras — für jeden eingeloggten Nutzer, gedacht für ein zweites
+        Gerät (z.B. iPad) neben der Simulations-Steuerung.
+      </p>
+    </div>
+    <button id="ccRefresh" class="btn btn-sm btn-outline">↻ Aktualisieren</button>
+  </div>
+
+  <div id="ccLoginNotice" class="alert hidden">
+    <span>Bitte einloggen, um Kameras zu steuern (oben rechts „Login").</span>
+  </div>
+
+  <!-- Kamera-Auswahl -->
+  <section id="ccListView">
+    <div id="ccEmpty" class="text-sm text-gray-500 hidden">
+      Keine beweglichen (PTZ-fähigen) Kameras eingerichtet. Ein Admin kann das unter
+      Optionen → Kameras pro Kamera aktivieren.
+    </div>
+    <div id="ccCamGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  </section>
+
+  <!-- Steuerung -->
+  <section id="ccControlView" class="hidden space-y-5">
+    <div class="flex items-center gap-3">
+      <button id="ccBack" class="btn btn-sm btn-outline">← Kameraliste</button>
+      <h2 id="ccCamName" class="text-xl font-semibold text-white"></h2>
+    </div>
+
+    <div id="ccStatus" class="text-sm text-gray-400 min-h-[1.25rem]"></div>
+
+    <div class="flex flex-wrap items-center justify-center gap-10">
+      <!-- Steuerkreuz -->
+      <div class="cc-pad">
+        <button class="btn btn-primary cc-pad-btn" data-pan="-70" data-tilt="70">↖</button>
+        <button class="btn btn-primary cc-pad-btn" data-pan="0" data-tilt="70">↑</button>
+        <button class="btn btn-primary cc-pad-btn" data-pan="70" data-tilt="70">↗</button>
+        <button class="btn btn-primary cc-pad-btn" data-pan="-70" data-tilt="0">←</button>
+        <button class="btn btn-error cc-pad-btn" id="ccStop">⏹</button>
+        <button class="btn btn-primary cc-pad-btn" data-pan="70" data-tilt="0">→</button>
+        <button class="btn btn-primary cc-pad-btn" data-pan="-70" data-tilt="-70">↙</button>
+        <button class="btn btn-primary cc-pad-btn" data-pan="0" data-tilt="-70">↓</button>
+        <button class="btn btn-primary cc-pad-btn" data-pan="70" data-tilt="-70">↘</button>
+      </div>
+
+      <!-- Zoom -->
+      <div class="flex flex-col gap-2 items-center">
+        <button class="btn btn-secondary cc-zoom-btn" id="ccZoomIn">🔍+</button>
+        <button class="btn btn-secondary cc-zoom-btn" id="ccZoomOut">🔍−</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script type="module" src="/static/js/camera_control.js"></script>
+{% endblock %}

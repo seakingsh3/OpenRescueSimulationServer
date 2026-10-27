@@ -1,0 +1,24 @@
+# Build
+target/
+
+# Node-Abhängigkeiten (per npm install wiederherstellbar)
+node_modules/
+
+# Laufzeitdaten: Datenbanken, Aufnahmen, Logs – gehören nicht ins Repo
+.ors-data/
+/data/
+*.db
+*.db-shm
+*.db-wal
+.ors-run.log
+
+# Gebaute Pakete / Testpakete
+*.deb
+ORS_Test.zip
+
+# Python-Cache
+__pycache__/
+*.pyc
+
+# Lokale CA/Schlüssel aus setup_https.sh
+src/web/frontend/static/ca/

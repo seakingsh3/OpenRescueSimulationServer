@@ -1,0 +1,861 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Page: Einstellungen -->
+<div class="space-y-6">
+  {% include "options_nav.html" %}
+
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-3xl font-bold">⚙️ Einstellungen</h1>
+      <p class="text-gray-400 text-sm">Alle Einstellungen, nach Themen gebündelt. Systemstatus und Logs findest du im Reiter oben links.</p>
+    </div>
+  </div>
+
+  <!-- Themen-Reiter: alle Bereiche bleiben im DOM, es wird nur umgeschaltet (options_tabs.js) -->
+  <div role="tablist" class="tabs tabs-box bg-base-200 border border-base-300 w-fit" id="optionsTabs">
+    <a role="tab" class="tab" href="#tab=kameras" data-tab="kameras">📷 Kameras &amp; Räume</a>
+    <a role="tab" class="tab" href="#tab=anzeige" data-tab="anzeige">📰 Anzeige &amp; Marker</a>
+    <a role="tab" class="tab" href="#tab=ausgabe" data-tab="ausgabe">🎬 Aufnahme &amp; Ausgabe</a>
+    <a role="tab" class="tab" href="#tab=benutzer" data-tab="benutzer">👤 Benutzer &amp; Zugang</a>
+  </div>
+
+  <!-- ========== Reiter: Kameras & Räume ========== -->
+  <div data-tab-panel="kameras" class="space-y-6">
+
+    <section id="sourcesSection" class="card bg-base-200 shadow-xl border border-base-300 p-6 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-2xl font-semibold text-gray-100">📷 Kameras / Quellen</h2>
+        <button id="openSourcesModalBtn"
+                class="btn btn-primary btn-sm">
+          Kameras verwalten
+        </button>
+      </div>
+
+      <p class="text-sm text-gray-400">
+        Hier kannst du Kameras definieren. Details bearbeitest du im Kamera-Modal.
+      </p>
+      <div id="sourcesAdminNote" class="hidden text-xs text-amber-300">
+        Nur Admins dürfen Kameras/Quellen bearbeiten.
+      </div>
+
+      <div id="sourcesSummaryOverview" class="mt-2 text-sm text-gray-300">
+        <!-- Optionale kurze Übersicht, kann per JS befüllt werden -->
+      </div>
+    </section>
+
+    <section class="card bg-base-200 shadow-xl border border-base-300 p-6 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-semibold text-gray-100">🏠 Räume</h2>
+          <p class="mt-1 text-sm text-gray-400">
+            Definiere vordefinierte Räume/Szenen mit Layout, Kamera-Zuordnung, Audio-Device und Standard-Viewer.
+          </p>
+        </div>
+        <button id="openRoomsModalBtn"
+                class="btn btn-primary btn-sm">
+          Räume verwalten
+        </button>
+      </div>
+    </section>
+
+    <section id="speakersSection" class="card bg-base-200 shadow-xl border border-base-300 p-6 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-semibold text-gray-100">🔈 Raumlautsprecher (Voice of Room)</h2>
+          <p class="text-sm text-gray-400">Empfänger für Durchsagen. Geräte melden sich selbst an, hier werden Name, Gruppe und Lautstärke gepflegt.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="speakersActiveInfo" class="text-xs text-gray-400"></span>
+          <button id="speakersRefreshBtn" class="btn btn-sm btn-outline">↻</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto border border-gray-700 rounded-xl">
+        <table class="table table-zebra table-sm w-full">
+          <thead class="text-[11px] uppercase tracking-wide text-base-content/60">
+            <tr>
+              <th class="px-3 py-2">Status</th>
+              <th class="px-3 py-2">Name</th>
+              <th class="px-3 py-2">Gruppe</th>
+              <th class="px-3 py-2">Adresse</th>
+              <th class="px-3 py-2 min-w-[10rem]">Lautstärke</th>
+              <th class="px-3 py-2 text-right">Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="speakersTableBody" class="divide-y divide-gray-800">
+            <tr><td colspan="6" class="px-3 py-4 text-center text-gray-500">Lade Lautsprecher…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <datalist id="speakerGroupsList"></datalist>
+      <div class="text-xs text-gray-400">
+        Neues Gerät: Client <code>ors-speaker</code> auf dem Raspberry Pi installieren (Ordner <code>speaker/</code> im Projekt,
+        Anleitung in der Hilfe). Nach dem Start erscheint es hier automatisch. Gruppen entstehen durch Eintippen im Feld „Gruppe“.
+      </div>
+    </section>
+
+    <section class="card bg-base-200 shadow-xl border border-base-300 p-6 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-2xl font-semibold">🎬 Aktive Viewer</h2>
+        <button id="pairDeviceBtn" type="button" class="btn btn-primary btn-sm">📱 Gerät koppeln</button>
+      </div>
+      <div id="settingsViewerList" class="space-y-2 divide-y divide-gray-800"></div>
+      <div class="pt-2">
+        <h3 class="text-lg font-semibold text-gray-100">🔗 Gekoppelte Geräte</h3>
+        <p class="ors-hint">Nur gekoppelte Bildschirme und Pager bekommen Bild und Durchsagen. Koppeln per QR-Code aus dem Zuschauer-QR-Assistenten oder per PIN („Gerät koppeln“).</p>
+        <div id="pairingsList" class="mt-2 text-sm text-gray-300"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ========== Reiter: Anzeige & Marker ========== -->
+  <div data-tab-panel="anzeige" class="space-y-6 hidden">
+
+    <section class="card bg-base-200 shadow-xl border border-base-300 p-6 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-semibold text-gray-100">📰 Viewer Overlay</h2>
+          <p class="text-sm text-gray-400">Ticker-Text und Trivia-Slideshow verwalten.</p>
+        </div>
+        <div class="flex gap-2">
+          <button id="overlayReloadBtn" class="btn btn-sm btn-outline">↻ Laden</button>
+          <button id="overlaySaveTickerBtn" class="btn btn-sm btn-primary">💾 Ticker speichern</button>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="space-y-3">
+          <h3 class="font-semibold text-gray-200 text-sm">Ticker (eine Zeile pro Eintrag)</h3>
+          <textarea id="tickerMessagesInput" rows="6"
+                    class="textarea textarea-bordered w-full bg-base-300 text-base-content text-sm"
+                    placeholder="Neue Zeile = neue Ticker-Nachricht"></textarea>
+        </div>
+
+        <div class="space-y-3">
+          <h3 class="font-semibold text-gray-200 text-sm">Trivia-Bilder (Slideshow im Idle)</h3>
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input type="file" id="triviaUploadInput" accept="image/*"
+                   class="file-input file-input-sm file-input-bordered bg-base-300 text-base-content w-full" />
+            <input type="text" id="triviaTitleInput"
+                   class="input input-bordered input-sm bg-base-300 text-base-content w-full"
+                   placeholder="Titel (optional)" />
+            <button id="triviaUploadBtn" class="btn btn-sm btn-primary">Hochladen</button>
+          </div>
+          <div id="triviaList" class="space-y-2 text-sm text-gray-200">
+            <div class="text-gray-500 text-xs">Keine Einträge geladen.</div>
+          </div>
+        </div>
+      </div>
+      <div id="overlayStatus" class="text-xs text-gray-400"></div>
+    </section>
+
+    <section class="card bg-base-200 shadow-xl border border-base-300 p-6 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-semibold text-gray-100">📍 Marker-Typen</h2>
+          <p class="mt-1 text-sm text-gray-400">
+            Verwalte vordefinierte Marker-Kategorien für deine Sessions.
+          </p>
+        </div>
+        <button id="markerTypesBtn"
+                class="btn btn-primary btn-sm">
+          Marker-Typen verwalten
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ========== Reiter: Aufnahme & Ausgabe (Admin) ========== -->
+  <div data-tab-panel="ausgabe" class="space-y-6 hidden">
+    <div id="adminSettingsHint" class="text-sm text-gray-400">
+      Aufnahme, Ausgabe, Audio, Updates, VOD-Downloads und Log-Aufräumen. Nur für Admins sichtbar, bitte als Admin einloggen.
+    </div>
+
+    <section id="adminSettingsSection" class="card bg-base-200 shadow-xl border border-base-300 p-6 space-y-4 hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-semibold text-gray-100">🔒 Admin: Systemeinstellungen</h2>
+          <p class="text-sm text-gray-400">Alles, was bisher über ENV/Settings lief (Record, Outputs, Audio).</p>
+        </div>
+        <div class="flex gap-2">
+          <button id="adminSettingsRefresh" class="btn btn-sm btn-outline">↻ </button>
+          <button id="adminSettingsSave" class="btn btn-sm btn-primary">💾</button>
+        </div>
+      </div>
+      <div class="text-xs text-gray-400">Änderungen speichern und ggf. Pipeline neu laden lassen.</div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <div class="space-y-3">
+          <h3 class="font-semibold text-gray-200 text-sm">Recording</h3>
+          <div class="text-xs text-gray-400">Standard: aktiv, Format <span class="font-mono">mkv</span>, Segment 300s. Max Files = 0 bedeutet unbegrenzt.</div>
+          <label class="flex items-center gap-2 text-sm text-gray-300">
+            <input type="checkbox" id="admRecordEnabled" class="checkbox checkbox-sm" />
+            Aufnahme aktiv
+          </label>
+          <div class="grid gap-2">
+            <input id="admRecordDir" class="input input-bordered input-sm bg-base-300 text-base-content" placeholder="Record-Verzeichnis (Standard: App-Data/recordings)" />
+            <input id="admRecordPrefix" class="input input-bordered input-sm bg-base-300 text-base-content" placeholder="Dateiprefix (Standard: rec)" />
+            <select id="admRecordFormat" class="select select-bordered select-sm bg-base-300 text-base-content">
+              <option value="">Standard</option>
+              <option value="mp4">mp4</option>
+              <option value="mkv">mkv</option>
+              <option value="mov">mov</option>
+            </select>
+            <input id="admRecordSegment" type="number" min="1" class="input input-bordered input-sm bg-base-300 text-base-content" placeholder="Segment (Sekunden, Standard: 300)" />
+            <input id="admRecordMaxFiles" type="number" min="0" class="input input-bordered input-sm bg-base-300 text-base-content" placeholder="Max Files (0 = unlimitiert)" />
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <h3 class="font-semibold text-gray-200 text-sm">Ausgabe &amp; Audio</h3>
+          <label class="block space-y-1">
+            <span class="text-xs font-semibold text-gray-300">Externer Verteiler (RTMP, optional)</span>
+            <input id="admOutputRtmp" class="input input-bordered input-sm bg-base-300 text-base-content w-full" placeholder="leer = aus · z.B. rtmp://streamserver/live/uebung" />
+            <span class="block text-xs text-gray-400">
+              Schickt Bild und Ton zusätzlich an einen Streaming-Server (z.B. MediaMTX, nginx-rtmp, Owncast), der es an viele
+              Zuschauer weiterverteilt. Nur während einer laufenden Session, nicht beim Vor-Start.
+              Fällt der Verteiler aus, läuft die Übung weiter – Status unter Systemstatus → Externer Verteiler.
+            </span>
+          </label>
+          <input id="admAudioDevice" class="input input-bordered input-sm bg-base-300 text-base-content" placeholder="Audio-Device (z.B. plughw:1,0) – leer = Standard" />
+        </div>
+      </div>
+      <div class="border-t border-gray-800 pt-3">
+        <div class="text-xs text-gray-400 mb-2">ENV (read-only):</div>
+        <div id="adminEnvList" class="text-xs text-gray-300 bg-gray-900/60 border border-gray-800 rounded-lg p-3 space-y-1">
+          <div class="text-gray-500">Keine ENV gefunden.</div>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-3 gap-4">
+        <button id="rebuildBtn" class="btn btn-primary btn-lg">
+          🔁 Pipeline neu aufbauen
+        </button>
+        <span id="saveSystemMsg" class="text-sm text-gray-400"></span>
+      </div>
+      <div id="adminSettingsStatus" class="text-xs text-gray-400"></div>
+
+      <div class="border-t border-gray-800 pt-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold text-gray-200 text-sm">🆙 Update (ohne APT)</h3>
+          <div class="flex gap-2">
+            <button id="adminUpdateList" class="btn btn-xs btn-outline">↻ Dateien</button>
+          </div>
+        </div>
+        <div class="text-xs text-gray-400">.deb hochladen oder aus Liste installieren.</div>
+        <div class="flex flex-col gap-2 md:flex-row">
+          <input type="file" id="adminUpdateFile" accept=".deb" class="file-input file-input-sm file-input-bordered bg-base-300 text-base-content" />
+          <button id="adminUpdateUpload" class="btn btn-sm btn-primary">Hochladen</button>
+        </div>
+        <div id="adminUpdateStatus" class="text-xs text-gray-400"></div>
+        <div id="adminUpdateListBox" class="space-y-2 text-sm text-gray-200"></div>
+      </div>
+
+      <div class="border-t border-gray-800 pt-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold text-gray-200 text-sm">📦 VOD Downloads</h3>
+          <button id="openVodModalBtn" class="btn btn-xs btn-outline">Öffnen</button>
+        </div>
+        <div class="text-xs text-gray-400">VOD-Dateien je Session als Download bereitstellen (nur Admin).</div>
+      </div>
+
+      <div class="border-t border-gray-800 pt-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold text-gray-200 text-sm">🧹 Logfiles aufraeumen</h3>
+        </div>
+        <div class="text-xs text-gray-400">Loescht Logdateien aelter als X Tage (nur Admin, aktive Tagesdatei bleibt erhalten).</div>
+        <div class="flex flex-wrap items-center gap-2">
+          <input id="admLogRetentionDays" type="number" min="0" max="3650" class="input input-bordered input-sm bg-base-300 text-base-content w-28" placeholder="Tage" />
+          <button id="adminLogsCleanupBtn" class="btn btn-sm btn-outline">Jetzt aufraeumen</button>
+          <span id="adminLogsCleanupStatus" class="text-xs text-gray-400"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ========== Reiter: Benutzer & Zugang ========== -->
+  <div data-tab-panel="benutzer" class="space-y-6 hidden">
+
+    <section class="card bg-base-200 shadow-xl border border-base-300 p-6 space-y-4">
+      <h2 class="text-2xl font-semibold">🖥️ Anmeldung per Token</h2>
+
+      <div class="rounded-lg border border-base-300 bg-base-300/40 p-4 space-y-3">
+        <div class="font-semibold text-base-content">📝 Registrierung (Self‑Register)</div>
+        <p class="text-sm text-gray-400">Nutzer registrieren sich mit Token, Benutzername und Passwort.</p>
+        <div class="grid gap-2 md:grid-cols-3">
+          <input id="selfRegisterToken" class="input input-bordered input-sm bg-base-300 text-base-content" placeholder="Token (z.B. L4RTZ)" />
+          <input id="selfRegisterName" class="input input-bordered input-sm bg-base-300 text-base-content" placeholder="Benutzername" />
+          <input id="selfRegisterPass" type="password" class="input input-bordered input-sm bg-base-300 text-base-content" placeholder="Passwort" />
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="selfRegisterBtn" class="btn btn-outline btn-sm">Registrieren</button>
+          <span id="selfRegisterStatus" class="text-xs text-gray-400"></span>
+        </div>
+      </div>
+
+    
+    
+    </section>
+
+    <section id="userSection" class="card bg-base-200 shadow-xl border border-base-300 p-6 space-y-4 hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-semibold text-gray-100">👤 Benutzerverwaltung</h2>
+          <p class="mt-1 text-sm text-gray-400">
+            Nur für Admins sichtbar. Benutzer anlegen oder entfernen.
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <button id="userRefreshBtn"
+                  class="btn btn-sm btn-outline">
+            ↻ Aktualisieren
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto border border-gray-700 rounded-xl">
+        <table class="table table-zebra w-full text-sm">
+          <thead class="text-[11px] uppercase tracking-wide text-base-content/60">
+            <tr>
+              <th class="px-3 py-2">ID</th>
+              <th class="px-3 py-2">Benutzername</th>
+              <th class="px-3 py-2">Rolle</th>
+              <th class="px-3 py-2">Erstellt</th>
+              <th class="px-3 py-2 text-right">Aktion</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody" class="divide-y divide-gray-800">
+            <tr><td colspan="5" class="px-3 py-3 text-center text-gray-500">Lade Benutzer…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <input id="userNewName" type="text" placeholder="Benutzername"
+               class="w-full rounded-md bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-gray-100" />
+        <input id="userNewPass" type="password" placeholder="Passwort"
+               class="w-full rounded-md bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-gray-100" />
+        <select id="userNewRole"
+                class="w-full rounded-md bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-gray-100">
+          <option value="user">user</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="userCreateBtn"
+                class="btn btn-primary btn-sm">
+          ＋ Benutzer anlegen
+        </button>
+        <span id="userStatus" class="text-xs text-gray-400"></span>
+      </div>
+
+      <div class="border-t border-gray-800 pt-4 space-y-2">
+        <div class="text-sm text-gray-400">Einladungs-Token erzeugen (Self‑Register)</div>
+        <div class="flex flex-col gap-2 md:flex-row md:items-center">
+          <button id="inviteTokenBtn" class="btn btn-outline btn-sm w-fit">🔑 Token erzeugen</button>
+          <input id="inviteTokenValue" class="input input-bordered input-sm bg-base-300 text-base-content font-mono text-center w-40" readonly />
+          <button id="inviteTokenCopy" class="btn btn-sm btn-outline w-fit">Kopieren</button>
+          <span id="inviteTokenStatus" class="text-xs text-gray-400"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="inviteTokenModal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center">
+  <div class="bg-gray-900/95 border border-gray-700 rounded-2xl p-6 shadow-2xl w-full max-w-md space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-white">Einladungs-Token</h3>
+      <button id="inviteTokenClose" class="btn btn-sm btn-ghost text-gray-300">✕</button>
+    </div>
+    <div class="text-sm text-gray-400">Token an die Person geben. Registrierung mit Namen + Passwort.</div>
+    <div class="flex items-center gap-2">
+      <input id="inviteTokenModalValue" class="input input-bordered input-sm bg-base-300 text-base-content w-full font-mono text-center" readonly />
+      <button id="inviteTokenModalCopy" class="btn btn-sm btn-outline">Kopieren</button>
+    </div>
+    <div class="text-xs text-gray-500">API: <code>/auth/register</code> mit Token.</div>
+  </div>
+</div>
+
+<!-- ================== VOD MODAL ================== -->
+<div id="vodModal"
+     class="fixed inset-0 bg-black/70 hidden overflow-y-auto"
+     style="z-index:100000;">
+  <div class="w-full max-w-4xl mx-auto my-10 bg-gray-900 rounded-2xl shadow-xl border border-gray-700 flex flex-col max-h-[90vh] relative"
+       style="z-index:100001;">
+    <div class="px-6 py-4 flex items-center justify-between border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
+      <h2 class="text-lg font-semibold text-white">VOD Downloads</h2>
+      <button id="closeVodModalBtn"
+              class="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white text-sm">
+        ✕
+      </button>
+    </div>
+
+    <div class="p-6 space-y-4 overflow-y-auto">
+      <div class="flex flex-col md:flex-row md:items-end gap-3">
+        <div class="flex-1">
+          <label class="block text-xs text-gray-400 mb-1">Session auswählen</label>
+          <select id="vodSessionSelect" class="select select-bordered select-sm bg-base-300 text-base-content w-full">
+            <option value="">Lade Sessions…</option>
+          </select>
+        </div>
+        <button id="vodRefreshBtn" class="btn btn-sm btn-outline">↻ VOD laden</button>
+      </div>
+
+      <div id="vodList" class="space-y-2 text-sm text-gray-200">
+        <div class="text-gray-500 text-xs">Bitte Session wählen.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================== KAMERA-MODAL ================== -->
+<div id="sourcesModal" class="ors-modal hidden">
+  <div class="ors-shell" style="max-width: 80rem;">
+    <div class="ors-head">
+      <div class="ors-head-title">
+        <div class="ors-head-icon">📷</div>
+        <div>
+          <h2>Kameras verwalten</h2>
+          <div class="ors-sub">Quellen anlegen, prüfen und Räumen zuordnen. Links auswählen, rechts bearbeiten.</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="addCameraBtn" class="btn btn-primary btn-sm">＋ Neue Kamera</button>
+        <button id="closeSourcesModalBtn" class="ors-close" title="Schließen">✕</button>
+      </div>
+    </div>
+
+    <div class="ors-body">
+      <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-0">
+
+        <!-- Links: Kameraliste -->
+        <aside class="ors-side border-b xl:border-b-0 xl:border-r border-white/10 p-4 md:p-5 space-y-3">
+          <div class="ors-section-head mb-1">
+            <div class="ors-section-title">Alle Kameras</div>
+            <span id="sourcesSummary" class="ors-hint"></span>
+          </div>
+          <div class="ors-table-wrap">
+            <table class="table table-zebra table-sm w-full">
+              <thead>
+                <tr>
+                  <th class="px-3 py-2">ID</th>
+                  <th class="px-3 py-2">Name</th>
+                  <th class="px-3 py-2">URL</th>
+                  <th class="px-3 py-2">Status</th>
+                  <th class="px-3 py-2 text-right">Aktion</th>
+                </tr>
+              </thead>
+              <tbody id="sourcesTableBody">
+                <!-- wird per JS gefüllt -->
+              </tbody>
+            </table>
+          </div>
+          <p class="ors-hint">Deaktivierte Kameras bleiben gespeichert, tauchen aber nicht in der Raumpalette auf.</p>
+        </aside>
+
+        <!-- Rechts: Editor -->
+        <div class="p-4 md:p-6">
+          <form id="sourceEditForm">
+            <section class="ors-section">
+              <div class="ors-section-head">
+                <div class="ors-section-title"><span class="ors-step">1</span> Stammdaten</div>
+                <label class="flex items-center gap-2 text-xs text-gray-200 cursor-pointer">
+                  <input id="sourceEnabledInput" type="checkbox" />
+                  Kamera ist aktiv
+                </label>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-[8rem_1fr] gap-3">
+                <div>
+                  <label for="sourceSlotInput" class="ors-label">Kamera-ID</label>
+                  <input id="sourceSlotInput" type="text" readonly class="w-full" />
+                </div>
+                <div>
+                  <label for="sourceNameInput" class="ors-label">Name</label>
+                  <input id="sourceNameInput" type="text" placeholder="z.B. Eingang Ost" class="w-full" />
+                </div>
+              </div>
+            </section>
+
+            <section class="ors-section">
+              <div class="ors-section-head">
+                <div class="ors-section-title"><span class="ors-step">2</span> Verbindung</div>
+              </div>
+              <div class="space-y-3">
+                <div>
+                  <label for="sourceUrlInput" class="ors-label">Stream-URL (RTSP/RTMP)</label>
+                  <input id="sourceUrlInput" type="text" placeholder="rtsp://user:pass@192.168.1.10:554/..." class="w-full font-mono" />
+                </div>
+                <div>
+                  <label for="sourceMjpegInput" class="ors-label">MJPEG-URL (optional)</label>
+                  <input id="sourceMjpegInput" type="text" placeholder="http://192.168.1.10/axis-cgi/mjpg/video.cgi" class="w-full font-mono" />
+                  <div class="ors-hint mt-1">Leer lassen: wird aus der RTSP/RTMP-Adresse abgeleitet (Axis-Standardpfad).</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="ors-section">
+              <div class="ors-section-head">
+                <div class="ors-section-title"><span class="ors-step">3</span> Hersteller &amp; PTZ</div>
+                <label class="flex items-center gap-2 text-xs text-gray-200 cursor-pointer">
+                  <input id="sourcePtzInput" type="checkbox" />
+                  Beweglich (PTZ)
+                </label>
+              </div>
+              <div class="space-y-3">
+                <div>
+                  <label for="sourceBrandInput" class="ors-label">Hersteller</label>
+                  <select id="sourceBrandInput" class="w-full">
+                    <option value="generic">Generisch / RTSP</option>
+                    <option value="axis">Axis (VAPIX)</option>
+                  </select>
+                </div>
+                <div id="sourcePtzFields" class="grid grid-cols-1 md:grid-cols-[1fr_1fr_8rem] gap-3 hidden">
+                  <div>
+                    <label for="sourceVapixUserInput" class="ors-label">VAPIX-Benutzer</label>
+                    <input id="sourceVapixUserInput" type="text" autocomplete="off" class="w-full" />
+                  </div>
+                  <div>
+                    <label for="sourceVapixPassInput" class="ors-label">VAPIX-Passwort</label>
+                    <input id="sourceVapixPassInput" type="password" autocomplete="new-password" placeholder="unverändert lassen = leer" class="w-full" />
+                  </div>
+                  <div>
+                    <label for="sourceVapixPortInput" class="ors-label">Port</label>
+                    <input id="sourceVapixPortInput" type="number" min="1" max="65535" placeholder="80" class="w-full" />
+                  </div>
+                </div>
+                <div id="sourcePtzHint" class="ors-hint hidden">
+                  Steuerung (Pan/Tilt/Zoom) läuft über die VAPIX-API der Kamera; Basic-Auth muss in den Axis-Netzwerkeinstellungen aktiviert sein. Jeder eingeloggte Nutzer kann die Kamera dann unter „Kamerasteuerung" bedienen.
+                </div>
+              </div>
+            </section>
+
+            <section class="ors-section">
+              <div class="ors-section-head">
+                <div class="ors-section-title"><span class="ors-step">4</span> Vorschau</div>
+                <div class="flex items-center gap-3">
+                  <div id="cameraPreviewStatus" class="ors-hint"></div>
+                  <button type="button" id="cameraPreviewRefresh" class="btn btn-xs btn-outline">↻ Snapshot</button>
+                </div>
+              </div>
+              <div class="ors-preview-frame min-h-[160px] flex items-center justify-center overflow-hidden">
+                <img id="cameraPreviewImg" class="max-h-72 w-full object-contain hidden" alt="Kamera Snapshot" />
+                <div id="cameraPreviewPlaceholder" class="ors-hint text-center px-4 py-8">Keine Vorschau geladen.</div>
+              </div>
+            </section>
+
+            <div class="ors-foot mt-4 rounded-xl">
+              <button type="button" id="sourceDeleteBtn" class="btn btn-error btn-sm btn-outline">Deaktivieren</button>
+              <button type="submit" class="btn btn-primary btn-sm">💾 Speichern</button>
+            </div>
+          </form>
+
+          <!-- Neue Kamera anlegen (eigenes Formular, wird per JS ein-/ausgeblendet) -->
+          <div id="newCameraSection" class="hidden">
+            <form id="newCameraForm">
+              <section class="ors-section" style="border-color: rgba(20,184,166,0.35);">
+                <div class="ors-section-head">
+                  <div class="ors-section-title"><span class="ors-step">＋</span> Neue Kamera hinzufügen</div>
+                  <label class="flex items-center gap-2 text-xs text-gray-200 cursor-pointer">
+                    <input id="newCamEnabled" type="checkbox" checked />
+                    Kamera aktiv
+                  </label>
+                </div>
+                <div class="space-y-3">
+                  <div>
+                    <label class="ors-label">Name</label>
+                    <input id="newCamName" type="text" placeholder="z.B. Eingang Nord" class="w-full" />
+                  </div>
+                  <div>
+                    <label class="ors-label">Stream-URL (RTSP/RTMP)</label>
+                    <input id="newCamUrl" type="text" placeholder="rtsp://..." class="w-full font-mono" />
+                  </div>
+                  <div>
+                    <label class="ors-label">MJPEG-URL (optional)</label>
+                    <input id="newCamMjpegUrl" type="text" placeholder="http://.../axis-cgi/mjpg/video.cgi" class="w-full font-mono" />
+                    <div class="ors-hint mt-1">Leer lassen: wird aus der RTSP/RTMP-Adresse abgeleitet.</div>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
+                    <div>
+                      <label for="newCamBrand" class="ors-label">Hersteller</label>
+                      <select id="newCamBrand" class="w-full">
+                        <option value="generic">Generisch / RTSP</option>
+                        <option value="axis">Axis (VAPIX)</option>
+                      </select>
+                    </div>
+                    <label class="flex items-center gap-2 text-xs text-gray-200 cursor-pointer pb-2">
+                      <input id="newCamPtz" type="checkbox" />
+                      Beweglich (PTZ)
+                    </label>
+                  </div>
+                  <div id="newCamPtzFields" class="grid grid-cols-1 md:grid-cols-[1fr_1fr_8rem] gap-3 hidden">
+                    <div>
+                      <label for="newCamVapixUser" class="ors-label">VAPIX-Benutzer</label>
+                      <input id="newCamVapixUser" type="text" autocomplete="off" class="w-full" />
+                    </div>
+                    <div>
+                      <label for="newCamVapixPass" class="ors-label">VAPIX-Passwort</label>
+                      <input id="newCamVapixPass" type="password" autocomplete="new-password" class="w-full" />
+                    </div>
+                    <div>
+                      <label for="newCamVapixPort" class="ors-label">Port</label>
+                      <input id="newCamVapixPort" type="number" min="1" max="65535" placeholder="80" class="w-full" />
+                    </div>
+                  </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                  <button type="button" id="cancelNewCameraBtn" class="btn btn-outline btn-sm">Abbrechen</button>
+                  <button type="submit" class="btn btn-primary btn-sm">＋ Hinzufügen</button>
+                </div>
+              </section>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================== ROOMS MODAL ================== -->
+<div id="roomsModal" class="ors-modal hidden" style="z-index:40;">
+  <div class="ors-shell" style="max-width: 88rem;">
+    <div class="ors-head">
+      <div class="ors-head-title">
+        <div class="ors-head-icon">🏠</div>
+        <div>
+          <h3>Räume verwalten</h3>
+          <div class="ors-sub">Layout, Kamerazuordnung, Audio, Lautsprecher und Standard-Viewer je Raum. Links wählen, rechts bearbeiten.</div>
+        </div>
+      </div>
+      <button id="closeRoomsModalBtn" class="ors-close" title="Schließen">✕</button>
+    </div>
+
+    <div class="ors-body">
+      <div class="grid grid-cols-1 xl:grid-cols-[26rem_minmax(0,1fr)] gap-0">
+
+        <!-- Links: Raumliste -->
+        <aside class="ors-side border-b xl:border-b-0 xl:border-r border-white/10 p-4 md:p-5 space-y-3">
+          <div class="ors-section-head mb-1">
+            <div>
+              <div class="ors-section-title">Räume</div>
+              <div id="roomsStats" class="ors-hint"></div>
+            </div>
+            <button id="addRoomBtn" class="btn btn-primary btn-sm">＋ Neuer Raum</button>
+          </div>
+          <div class="ors-table-wrap overflow-x-auto">
+            <table class="table table-zebra table-sm w-full">
+              <thead>
+                <tr>
+                  <th class="px-3 py-2">Raum</th>
+                  <th class="px-3 py-2 text-right">Aktionen</th>
+                </tr>
+              </thead>
+              <tbody id="roomsTableBody">
+                <!-- via JS -->
+              </tbody>
+            </table>
+          </div>
+          <p class="ors-hint">Ein Raum legt fest, was beim Session-Start oder beim Live-Raumwechsel gezeigt wird.</p>
+        </aside>
+
+        <!-- Rechts: Editor -->
+        <form id="roomEditForm" class="flex flex-col min-w-0">
+          <input type="hidden" id="roomIdInput" />
+          <div class="p-4 md:p-6">
+
+            <section class="ors-section">
+              <div class="ors-section-head">
+                <div class="ors-section-title"><span class="ors-step">1</span> Grunddaten</div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="ors-label">Raumname</label>
+                  <input id="roomNameInput" type="text" class="w-full" placeholder="Übungsraum 1" required />
+                </div>
+                <div>
+                  <label class="ors-label">Layout</label>
+                  <select id="roomLayoutSelect" class="w-full">
+                    <!-- via JS mit Presets gefüllt -->
+                  </select>
+                  <p class="ors-hint mt-1">Anzahl und Anordnung der Kamera-Kacheln.</p>
+                </div>
+                <div>
+                  <label class="ors-label">Standard-Viewer-ID (optional)</label>
+                  <input id="roomViewerInput" type="number" min="1" class="w-full" placeholder="z.B. 1" />
+                  <p class="ors-hint mt-1">Bekommt beim Start automatisch den Stream.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="ors-section">
+              <div class="ors-section-head">
+                <div class="ors-section-title"><span class="ors-step">2</span> Kameras zuordnen</div>
+                <div id="roomLayoutHint" class="ors-hint"></div>
+              </div>
+              <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                <div class="lg:col-span-2 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div class="text-xs font-semibold text-gray-300">Verfügbare Kameras</div>
+                    <button type="button" id="refreshSourcesPaletteBtn" class="btn btn-outline btn-xs" title="Palette neu laden">↻</button>
+                  </div>
+                  <div id="roomSourcesPalette" class="grid grid-cols-2 gap-2 text-xs">
+                    <!-- via JS -->
+                  </div>
+                  <p class="ors-hint">Kamera auf eine Kachel ziehen. Kachel anklicken löst die Zuordnung.</p>
+                </div>
+                <div class="lg:col-span-3 space-y-2">
+                  <div class="text-xs font-semibold text-gray-300">Layout-Vorschau &amp; Zuordnung</div>
+                  <div id="roomLayoutGrid" class="ors-preview-frame ors-preview-16x9 relative p-3 flex items-center justify-center">
+                    <!-- JS baut hier die CSS-Grid-Kacheln -->
+                  </div>
+                  <p class="ors-hint">Jede Kachel ist ein Slot (ab 0). Leere Slots zeigen das Testbild.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="ors-section">
+              <div class="ors-section-head">
+                <div class="ors-section-title"><span class="ors-step">3</span> Audio-Eingänge</div>
+                <button type="button" id="roomAudioModalBtn" class="btn btn-outline btn-xs">🎚️ Audio verwalten</button>
+              </div>
+              <input id="roomAudioInput" type="hidden" />
+              <div id="roomAudioList" class="space-y-1 rounded-lg bg-black/30 border border-white/10 p-3 text-[11px] text-gray-300">
+                <!-- JS setzt eine kurze Zusammenfassung der ausgewählten Audio-Inputs -->
+              </div>
+              <p class="ors-hint mt-2">Ohne Auswahl gilt das globale Audiogerät. Mehrere Eingänge werden gemischt, Kanäle je Eingang im Audio-Dialog.</p>
+            </section>
+
+            <section class="ors-section">
+              <div class="ors-section-head">
+                <div class="ors-section-title"><span class="ors-step">4</span> Lautsprecher</div>
+                <button type="button" id="roomSpeakersRefreshBtn" class="btn btn-outline btn-xs" title="Lautsprecherliste neu laden">↻</button>
+              </div>
+              <div id="roomSpeakersList" class="grid grid-cols-1 sm:grid-cols-2 gap-1 rounded-lg bg-black/30 border border-white/10 p-3 text-xs text-gray-300">
+                <!-- via JS: Ankreuzliste der bekannten Lautsprecher -->
+              </div>
+              <p class="ors-hint mt-2">Angekreuzte Lautsprecher stehen im Durchsage-Dialog (PTT) als Ziel „🏠 Raum …“ bereit, solange eine Session in diesem Raum läuft – unabhängig von ihrer Gruppe.</p>
+            </section>
+
+            <details class="ors-section">
+              <summary class="cursor-pointer select-none ors-section-title">
+                <span class="ors-step">5</span> Erweitert: Quellen-JSON
+                <span class="ors-hint normal-case tracking-normal font-normal">(wird mit der Zuordnung synchronisiert)</span>
+              </summary>
+              <div class="mt-3">
+                <textarea id="roomSourcesInput" rows="3" class="w-full font-mono" placeholder='[1, null, 3] // Kamera-IDs pro Slot'></textarea>
+                <p class="ors-hint mt-1">Array von Kamera-IDs, <code>null</code> = Testbild. Änderungen hier übernehmen die Kacheln beim Speichern.</p>
+              </div>
+            </details>
+          </div>
+
+          <div class="ors-foot">
+            <button type="button" id="roomDeleteBtn" class="btn btn-error btn-sm btn-outline hidden">Raum löschen</button>
+            <div class="flex items-center gap-3 ml-auto">
+              <span id="roomSaveStatus" class="ors-hint"></span>
+              <button type="submit" class="btn btn-primary btn-sm">💾 Raum speichern</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Datalist für Audio-Devices (optional, wird mit JS befüllt/ergänzt) -->
+<datalist id="audioDevicesList">
+  <option value="default"></option>
+  <option value="auto"></option>
+  <option value="pulsesrc device=..."></option>
+</datalist>
+
+<!-- Room Audio Modal -->
+<div id="pairModal" class="ors-modal hidden" role="dialog" aria-labelledby="pairModalTitle">
+  <div class="ors-shell" style="max-width: 30rem; height: auto;">
+    <div class="ors-head">
+      <div class="ors-head-title">
+        <div class="ors-head-icon">📱</div>
+        <div>
+          <h2 id="pairModalTitle">Gerät koppeln</h2>
+          <div class="ors-sub">Am Bildschirm bzw. Pager erscheint „Bitte koppeln“ – dort diese PIN eingeben.</div>
+        </div>
+      </div>
+      <button id="closePairModalBtn" class="ors-close" title="Schließen">✕</button>
+    </div>
+    <div class="ors-body p-6 text-center space-y-3">
+      <div id="pairPin" class="font-mono text-5xl font-bold tracking-[0.3em] text-teal-300">––––––</div>
+      <div id="pairCountdown" class="text-sm text-gray-400"></div>
+      <div id="pairResult" class="text-base font-semibold text-emerald-400 min-h-[1.5rem]"></div>
+    </div>
+    <div class="ors-foot">
+      <span class="ors-hint">Gilt 2 Minuten und nur für ein Gerät.</span>
+      <button id="pairNewPinBtn" class="btn btn-outline btn-sm">Neue PIN</button>
+    </div>
+  </div>
+</div>
+
+<div id="roomAudioModal" class="ors-modal hidden">
+  <div class="ors-shell" style="max-width: 64rem; height: auto;">
+    <div class="ors-head">
+      <div class="ors-head-title">
+        <div class="ors-head-icon">🎚️</div>
+        <div>
+          <h2>Audio-Eingänge für diesen Raum</h2>
+          <div class="ors-sub">Häkchen wählt den Eingang für den Raum. Gerät, Label, Gain und Kanäle gelten für alle Räume.</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="roomAudioAddBtn" class="btn btn-primary btn-sm">＋ Eingang</button>
+        <button id="closeRoomAudioModalBtn" class="ors-close" title="Schließen">✕</button>
+      </div>
+    </div>
+    <div class="ors-body p-4 md:p-6">
+      <div id="roomAudioDefsList" class="space-y-2 rounded-xl bg-black/30 border border-white/10 p-3 text-sm text-gray-200">
+        <!-- JS -->
+      </div>
+      <p class="ors-hint mt-3">
+        Kanäle: leer = alle Kanäle des Geräts gemischt, <code>1,2</code> = Stereo (links/rechts), <code>3</code> = nur Eingang 3, <code>1-8</code> = Eingänge 1 bis 8 gemischt.
+      </p>
+    </div>
+    <div class="ors-foot">
+      <span></span>
+      <button id="saveRoomAudioBtn" class="btn btn-primary btn-sm">Übernehmen &amp; schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Marker Types Management Modal -->
+<div id="markerTypesModal"
+     class="fixed inset-0 bg-black bg-opacity-70 hidden overflow-y-auto"
+     style="z-index:100000;">
+  <div class="mx-auto w-full max-w-xl my-10">
+    <div class="bg-gray-900 rounded-xl shadow-xl max-h-[90vh] flex flex-col relative"
+         style="z-index:100001;">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
+        <h2 class="text-xl font-bold text-white">📍 Marker-Typen verwalten</h2>
+        <button id="closeMarkerTypesModal"
+                class="text-gray-300 hover:text-white text-2xl leading-none">✖</button>
+      </div>
+
+      <!-- Liste -->
+      <div id="markerTypesList" class="flex-1 overflow-y-auto divide-y divide-gray-800">
+        <div class="p-4 text-gray-400">Lade Marker-Typen…</div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 border-t border-gray-800 sticky bottom-0 bg-gray-900 z-10">
+        <div class="flex justify-between items-center gap-3">
+          <button id="addMarkerTypeBtn"
+                  class="btn btn-primary btn-sm">
+            ＋ Neuer Typ
+          </button>
+          <span id="markerTypesStats" class="text-xs text-gray-400">0 Typen</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/options_tabs.js"></script>
+<script src="/static/js/options.js" type="module"></script>
+<script src="/static/js/pairing_admin.js" type="module"></script>
+{% endblock %}
