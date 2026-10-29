@@ -150,6 +150,16 @@ Voraussetzungen und Details: [tests/e2e/README.md](tests/e2e/README.md).
 | `scripts/` | Installation, HTTPS-Einrichtung |
 | [`API_Befehle.md`](API_Befehle.md) | Übersicht der API |
 
+## Über das Projekt
+
+Open Rescue Simulation Server ist ein Einzelprojekt aus der Praxis der Simulationsausbildung. Konzept,
+fachliche Anforderungen und die Erprobung im Übungsbetrieb stammen aus dem Projekt selbst; große Teile des
+Quellcodes sind mit Unterstützung von KI-Werkzeugen entstanden und werden mit automatischen Ende-zu-Ende-Tests
+geprüft.
+
+Es gibt keinen garantierten Support und keine festen Release-Termine. Fehlerberichte und Vorschläge sind
+trotzdem willkommen – als Issue auf GitHub.
+
 ## Mitmachen
 
 Fehler und Vorschläge gern als Issue. Die Oberfläche und die Doku sind auf Deutsch.
