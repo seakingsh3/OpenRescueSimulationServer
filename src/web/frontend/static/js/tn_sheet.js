@@ -170,7 +170,7 @@
     if (nameLbl) nameLbl.textContent = sheet.name;
     const dateLbl = $('#sheetDateLabel');
     if (dateLbl) dateLbl.textContent = sheet.updated_at ? `Stand ${fmtDate(sheet.updated_at)}` : fmtDate(sheet.created_at);
-    document.title = `Notizblatt ${sheet.name} – OpenRescueSim`;
+    document.title = `Notizblatt ${sheet.name} – Open Rescue Simulation Server`;
 
     const unlinkBtn = $('#btnUnlink');
     if (sheet.session_id && sheet.linked_active) {
@@ -291,7 +291,7 @@
     doc.querySelector('body')?.classList.add('mode-print');
     const meta = doc.createElement('meta');
     meta.setAttribute('name', 'generator');
-    meta.setAttribute('content', 'OpenRescueSim Teilnehmer-Notizblatt');
+    meta.setAttribute('content', 'Open Rescue Simulation Server Teilnehmer-Notizblatt');
     doc.querySelector('head')?.appendChild(meta);
     return '<!DOCTYPE html>\n' + doc.outerHTML;
   }

@@ -102,9 +102,9 @@ fi
 # Firewall
 if [ "$FIREWALL" = "true" ] && command -v ufw >/dev/null 2>&1 && LC_ALL=C ufw status 2>/dev/null | grep -q "Status: active"; then
   echo "==> Firewall (ufw) öffnen"
-  ufw allow "$HTTP_PORT/tcp" comment OpenRescueSim >/dev/null || true
-  [ "$HTTPS" = "true" ] && { ufw allow "$HTTPS_PORT/tcp" comment OpenRescueSim >/dev/null || true; }
-  ufw allow 1024:65535/udp comment "OpenRescueSim WebRTC" >/dev/null || true
+  ufw allow "$HTTP_PORT/tcp" comment "Open Rescue Simulation" >/dev/null || true
+  [ "$HTTPS" = "true" ] && { ufw allow "$HTTPS_PORT/tcp" comment "Open Rescue Simulation" >/dev/null || true; }
+  ufw allow 1024:65535/udp comment "Open Rescue Simulation WebRTC" >/dev/null || true
 fi
 
 # Zusammenfassung
@@ -112,7 +112,7 @@ IP="$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.' | head -n1 || 
 [ -n "$IP" ] || IP="<server-ip>"
 echo
 echo "=================================================================="
-echo " OpenRescueSim ist installiert."
+echo " Open Rescue Simulation Server ist installiert."
 if [ -n "${DEBCONF_RECONFIGURE:-}" ]; then
   echo " Neue Einstellungen übernommen."
 elif [ -n "$2" ]; then

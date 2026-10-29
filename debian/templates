@@ -35,7 +35,7 @@ Description: Port für HTTPS:
 Template: openresquesim-server/firewall
 Type: boolean
 Default: true
-Description: Firewall (ufw) für OpenRescueSim öffnen?
+Description: Firewall (ufw) für Open Rescue Simulation Server öffnen?
  Die Firewall ufw ist aktiv. Geöffnet werden die Ports der Weboberfläche
  (HTTP und HTTPS) sowie UDP 1024-65535 für die Live-Übertragung (WebRTC).
 

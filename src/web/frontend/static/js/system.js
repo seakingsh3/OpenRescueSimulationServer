@@ -518,7 +518,7 @@ async function openLogMailDraft(fileName) {
       : '(gekürzt wegen Mail-Client-Limit)';
   }
 
-  const subject = `OpenRescueSim Logdatei: ${safeName}`;
+  const subject = `Open Rescue Simulation Server Logdatei: ${safeName}`;
   const downloadUrl = `${window.location.origin}/api/admin/logs/files/${encodeURIComponent(safeName)}`;
   const fullBody = [
     'Hallo,',
@@ -675,7 +675,7 @@ async function quickMailCurrentLog() {
   } catch (e) {
     console.warn('clipboard write failed', e);
   }
-  const subject = `OpenRescueSim Logauszug ${new Date().toLocaleString('de-DE')}`;
+  const subject = `Open Rescue Simulation Server Logauszug ${new Date().toLocaleString('de-DE')}`;
   const body = [
     'Hallo,',
     '',

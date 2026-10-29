@@ -1,6 +1,6 @@
-// viewer.js – komplett neu, zugeschnitten auf OpenResqueSim-Server
+// viewer.js – komplett neu, zugeschnitten auf Open Rescue Simulation Server
 (() => {
-  console.log("[viewer] Initialisiere OpenResqueSim Viewer …");
+  console.log("[viewer] Initialisiere Open Rescue Simulation Server Viewer …");
 
   const logBuffer = [];
   const LOG_LIMIT = 60;

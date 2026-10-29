@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Richtet HTTPS für OpenRescueSim im lokalen Netz ein (lokale Zertifizierungsstelle mit mkcert).
+# Richtet HTTPS für Open Rescue Simulation Server im lokalen Netz ein (lokale Zertifizierungsstelle mit mkcert).
 #
 #   sudo ./scripts/setup_https.sh [Hostname/IP ...]
 #

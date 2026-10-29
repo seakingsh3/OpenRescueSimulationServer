@@ -2,12 +2,12 @@
 name = "openresquesim_server"
 version = "2.2.0"
 edition = "2021"
-description = "OpenRescueSim Server: Kamera-Aufzeichnung, Live-Stream, Marker und Debriefing für Einsatz-Simulationstraining"
+description = "Open Rescue Simulation Server: Kamera-Aufzeichnung, Live-Stream, Marker und Debriefing für Einsatz-Simulationstraining"
 
 
 [package.metadata.deb]
 name = "openresquesim-server"
-maintainer = "OpenRescueSim-Projekt <noreply@openrescuesim.invalid>"
+maintainer = "Open-Rescue-Simulation-Projekt <noreply@open-rescue-simulation.invalid>"
 license-file = "LICENSE"
 section = "video"
 priority = "optional"

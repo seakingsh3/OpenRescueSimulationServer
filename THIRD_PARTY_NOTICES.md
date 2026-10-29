@@ -1,6 +1,6 @@
 # Fremdbestandteile und Lizenzen
 
-OpenRescueSim Server selbst steht unter der **GNU GPL v3** (siehe `LICENSE`). Diese Datei
+Open Rescue Simulation Server selbst steht unter der **GNU GPL v3** (siehe `LICENSE`). Diese Datei
 listet mitgelieferte Fremdbestandteile mit ihren Lizenzen. Alle sind mit der GPLv3 verträglich.
 
 ## Eigene Inhalte

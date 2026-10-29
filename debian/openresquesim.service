@@ -1,5 +1,5 @@
 [Unit]
-Description=OpenRescueSim Server
+Description=Open Rescue Simulation Server
 After=network-online.target sound.target
 Wants=network-online.target
 

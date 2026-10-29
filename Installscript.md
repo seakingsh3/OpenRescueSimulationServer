@@ -51,7 +51,7 @@ sudo install -d -o root -g root /var/log/openresquesim
 
 ```ini
 [Unit]
-Description=OpenResqueSim Server
+Description=Open Rescue Simulation Server
 After=network.target sound.target
 Wants=network.target
 

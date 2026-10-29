@@ -1,4 +1,4 @@
-# OpenRescueSim Server
+# Open Rescue Simulation Server
 
 Server für das Simulationstraining im Rettungsdienst und in anderen Einsatzbereichen: Er nimmt die Kameras und
 Mikrofone im Übungsraum auf, zeigt das Bild live auf Zuschauer-Bildschirmen, lässt Ausbilder während der Übung
@@ -122,7 +122,7 @@ Start automatisch.
 ## Zusatzgeräte
 
 Raumlautsprecher (Raspberry Pi, ESP32) und die „On-Air“-Lampe am Raumeingang liegen in einem eigenen Repository:
-**OpenRescueSim-Devices** (auf GitHub neben diesem Projekt).
+**open-rescue-simulation-devices** (auf GitHub neben diesem Projekt).
 
 ## Tests
 

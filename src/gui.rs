@@ -138,7 +138,7 @@ impl GuiApp {
 
     fn top_bar(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            ui.heading("OpenResqueSim – Control");
+            ui.heading("Open Rescue Simulation Server – Control");
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if ui.button("Kamera hinzufügen").clicked() {
                     self.add_cam = AddCamDialog::default();
@@ -346,7 +346,7 @@ fn vendor_label(v: &CameraVendor) -> &'static str {
 pub fn run_gui(server_base: String) -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
-        "OpenResqueSim GUI",
+        "Open Rescue Simulation Server GUI",
         native_options,
         Box::new(move |_cc| Box::new(GuiApp::new(server_base))),
     )

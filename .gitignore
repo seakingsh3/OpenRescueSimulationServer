@@ -25,3 +25,7 @@ src/web/frontend/static/ca/
 
 # Release-Ausgabe (scripts/release.sh)
 /release/
+
+# Schlüssel-Kopien (Signatur liegt in ~/.config/openresquesim)
+/update-signing.pem
+*.key

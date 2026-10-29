@@ -27,7 +27,7 @@ if command -v apt-get >/dev/null 2>&1; then
   echo "Aktualisiere Paketquellen..."
   apt-get update
 
-  echo "Installiere Laufzeitabhängigkeiten für OpenRescueSim..."
+  echo "Installiere Laufzeitabhängigkeiten für Open Rescue Simulation Server..."
   apt-get install -y --no-install-recommends "${DEBIAN_DEPS[@]}"
 
   echo "Fertig. Starte anschließend die kompilierte Binary (z.B. target/release/openresquesim_server)."

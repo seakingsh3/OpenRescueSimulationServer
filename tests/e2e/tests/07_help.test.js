@@ -26,7 +26,7 @@ module.exports = {
     const sys = await browser.page();
     await t.api.loginPage(sys);
     await sys.goto(t.base + '/ui/options/system', 2500);
-    t.check('Systemseite zeigt „Über OpenRescueSim & Lizenzen“', /GPL/.test(await sys.eval(`document.getElementById('systemAbout')?.innerText || ''`)));
+    t.check('Systemseite zeigt „Über Open Rescue Simulation & Lizenzen“', /GPL/.test(await sys.eval(`document.getElementById('systemAbout')?.innerText || ''`)));
     t.check('Keine JS-Fehler', page.errors.length === 0, page.errors);
   },
 };

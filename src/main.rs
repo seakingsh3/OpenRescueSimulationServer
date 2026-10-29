@@ -619,7 +619,7 @@ async fn main() -> anyhow::Result<()> {
 
     let log_path = logging::init_tracing_with_file();
     tracing::info!(
-        "OpenRescueSim Server v{} startet …",
+        "Open Rescue Simulation Server v{} startet …",
         env!("CARGO_PKG_VERSION")
     );
     tracing::info!("Logdatei: {}", log_path.display());

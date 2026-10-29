@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenRescueSim – Hilfe</title>
+  <title>Open Rescue Simulation Server – Hilfe</title>
   <link rel="stylesheet" href="/static/dist/style.css" />
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
   <script>
@@ -58,7 +58,7 @@
     <div class="flex items-center gap-3 mr-auto">
       <img src="/static/icons/ORS_logo.svg" alt="" class="w-9 h-9 hidden sm:block" onerror="this.style.display='none'">
       <div>
-        <div class="text-white font-bold text-lg leading-tight">OpenRescueSim – Hilfe</div>
+        <div class="text-white font-bold text-lg leading-tight">Open Rescue Simulation Server – Hilfe</div>
         <div class="text-xs text-gray-300">Schritt-für-Schritt-Anleitungen für alle Funktionen</div>
       </div>
     </div>
@@ -128,7 +128,7 @@
     <!-- ===================================================================== -->
     <section id="ueberblick" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3">
       <h2>🧭 Überblick &amp; Bedienung</h2>
-      <p>OpenRescueSim zeichnet Übungen mit mehreren Kameras auf, überträgt sie live an Zuschauer-Viewer und lässt Ausbilder
+      <p>Open Rescue Simulation Server zeichnet Übungen mit mehreren Kameras auf, überträgt sie live an Zuschauer-Viewer und lässt Ausbilder
         während der Übung <b>Marker</b> setzen, die im <b>Debriefing</b> angesprungen werden können.</p>
 
       <h3>Aufbau der Oberfläche</h3>
@@ -260,7 +260,7 @@ sudo install -m 440 scripts/sudoers.openresquesim /etc/sudoers.d/openresquesim</
       <h3>5 · systemd-Dienst</h3>
       <p>Datei <code>/etc/systemd/system/openresquesim.service</code> anlegen:</p>
       <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>[Unit]
-Description=OpenResqueSim Server
+Description=Open Rescue Simulation Server
 After=network.target sound.target
 Wants=network.target
 
@@ -324,7 +324,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       </ul>
 
       <h3>9 · HTTPS und Lautsprecher</h3>
-      <p>HTTPS für die Durchsage-Geräte: <code>sudo ./scripts/setup_https.sh</code>, Details unter <a class="link" href="#https">HTTPS einrichten</a>. Raumlautsprecher auf dem Raspberry Pi (aus dem Geräte-Repository <b>OpenRescueSim-Devices</b>, Ordner <code>speaker_pi/</code>): <code>sudo ./install_speaker.sh &lt;server&gt;:8393 "Simraum 1" simraum</code>, Details unter <a class="link" href="#audio">Audio &amp; Durchsagen</a>.</p>
+      <p>HTTPS für die Durchsage-Geräte: <code>sudo ./scripts/setup_https.sh</code>, Details unter <a class="link" href="#https">HTTPS einrichten</a>. Raumlautsprecher auf dem Raspberry Pi (aus dem Geräte-Repository <b>open-rescue-simulation-devices</b>, Ordner <code>speaker_pi/</code>): <code>sudo ./install_speaker.sh &lt;server&gt;:8393 "Simraum 1" simraum</code>, Details unter <a class="link" href="#audio">Audio &amp; Durchsagen</a>.</p>
 
       <h3>10 · Updates</h3>
       <ul class="list-disc pl-6 space-y-1">
@@ -578,7 +578,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       <h3>Raumlautsprecher (Raspberry Pi) einrichten</h3>
       <p>Für die kleinen ESP32-Lautsprecher siehe <a class="link" href="#zusatzgeraete">Lautsprecher &amp; On-Air-Lampe</a>.</p>
       <ol class="steps-list">
-        <li>Auf dem Pi den Client aus dem Geräte-Repository <b>OpenRescueSim-Devices</b> (Ordner <code>speaker_pi/</code>) installieren: <code>sudo ./install_speaker.sh &lt;server:8393&gt; "Simraum 1" simraum</code>. Der Dienst startet automatisch mit dem Gerät.</li>
+        <li>Auf dem Pi den Client aus dem Geräte-Repository <b>open-rescue-simulation-devices</b> (Ordner <code>speaker_pi/</code>) installieren: <code>sudo ./install_speaker.sh &lt;server:8393&gt; "Simraum 1" simraum</code>. Der Dienst startet automatisch mit dem Gerät.</li>
         <li>Das Gerät erscheint unter <span class="ui">Einstellungen</span> → <span class="ui">Kameras &amp; Räume</span> → <b>Raumlautsprecher</b> mit Status <b>online</b>.</li>
         <li>Dort Name und <b>Gruppe</b> eintippen (Feld verlassen speichert), Lautstärke mit dem Schieber setzen.</li>
         <li><span class="ui">🔔 Test</span> spielt einen Testton, <span class="ui">📍</span> lässt das Gerät piepen und blinken, <span class="ui">🔇</span> schaltet stumm, <span class="ui">⟳</span> startet das Gerät neu (es ist danach einige Sekunden offline), <span class="ui">✕</span> entfernt es aus der Liste (ein laufendes Gerät meldet sich neu an).</li>
@@ -718,7 +718,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       <p>GPIO2, 8 und 9 (D0, D8, D9) nicht verwenden: Das sind Strapping-Pins, GPIO9 hängt zudem am BOOT-Taster.</p>
 
       <h3>Raumlautsprecher: Platinendaten (Variante A)</h3>
-      <p>Im Geräte-Repository <b>OpenRescueSim-Devices</b>, Ordner <code>speaker_esp32/</code>:</p>
+      <p>Im Geräte-Repository <b>open-rescue-simulation-devices</b>, Ordner <code>speaker_esp32/</code>:</p>
       <div class="overflow-x-auto">
         <table class="table table-sm">
           <thead><tr><th>Datei</th><th>Inhalt</th></tr></thead>
@@ -829,7 +829,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       </div>
 
       <h3>On-Air-Lampe: Firmware bauen und flashen</h3>
-      <p>Quelle: <code>relay_onair/relay_onair.ino</code> im Geräte-Repository <b>OpenRescueSim-Devices</b>.</p>
+      <p>Quelle: <code>relay_onair/relay_onair.ino</code> im Geräte-Repository <b>open-rescue-simulation-devices</b>.</p>
       <ul class="list-disc pl-6 space-y-1">
         <li>Boardpaket <b>„esp8266“</b> (getestet 3.1.2), Board <b>Generic ESP8266 Module</b>, Flash Size <b>1MB (FS:64KB)</b>.</li>
         <li>Bibliothek: <b>WiFiManager</b> (tzapu, 2.0.x).</li>
@@ -936,7 +936,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       <ul class="list-disc pl-6 space-y-1">
         <li><b>Performance</b>: CPU, Speicher, Last und Laufzeit des Servers. <b>Netzwerk</b>: Adressen und Schnittstellen. <b>Externer Verteiler</b>: Zustand des optionalen RTMP-Ausgangs (aus, verbindet, sendet, Fehler). Die Versionsnummer steht im Kopf.</li>
         <li><b>🔒 HTTPS</b> (nur Admin): Zustand von HTTPS und Gültigkeit des Zertifikats, Einrichten/Erneuern per Knopf, Download und QR-Code für das Wurzelzertifikat (siehe <a href="#https">HTTPS einrichten</a>).</li>
-        <li><b>Über OpenRescueSim &amp; Lizenzen</b>: Projektlizenz (GPLv3) und die verwendeten Fremdbestandteile mit ihren Lizenzen; <span class="ui">Alle Lizenztexte</span> zeigt die vollständigen Texte.</li>
+        <li><b>Über Open Rescue Simulation &amp; Lizenzen</b>: Projektlizenz (GPLv3) und die verwendeten Fremdbestandteile mit ihren Lizenzen; <span class="ui">Alle Lizenztexte</span> zeigt die vollständigen Texte.</li>
         <li><span class="ui">↻ Aktualisieren</span> lädt alle Werte neu; sie werden sonst automatisch aktualisiert.</li>
         <li><b>Service-Logs</b> zeigen die letzten Logzeilen live.</li>
       </ul>
@@ -1111,7 +1111,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       <ol class="steps-list">
         <li>Auf dem iPad in Safari <code>http://&lt;server&gt;:8393/ca/ors-rootCA.crt</code> öffnen oder den QR-Code auf der Systemseite (Karte <b>🔒 HTTPS</b>) scannen. Es erscheint „Profil geladen“.</li>
         <li>Einstellungen öffnen, das geladene Profil <b>installieren</b>.</li>
-        <li>Unter <b>Allgemein → Info → Zertifikatsvertrauen</b> den Schalter für das OpenRescueSim-Zertifikat einschalten.</li>
+        <li>Unter <b>Allgemein → Info → Zertifikatsvertrauen</b> den Schalter für das Zertifikat „mkcert root@…“ (Name des Servers) einschalten.</li>
         <li><code>https://&lt;server&gt;.local:8443/ui</code> öffnen und als Lesezeichen sichern. Der PTT-Knopf hat jetzt Mikrofonzugriff.</li>
       </ol>
       <p>Windows: Datei doppelklicken, „Zertifikat installieren“, Lokaler Computer, „Vertrauenswürdige Stammzertifizierungsstellen“. macOS: Datei in den Schlüsselbund ziehen und auf „Immer vertrauen“ setzen.</p>
@@ -1163,7 +1163,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
         <dt class="font-semibold">Vor-Start</dt><dd>Vorbereitete Session, die erst mit „Freigeben“ wirklich startet.</dd>
         <dt class="font-semibold">Teilnehmer-Notizblatt</dt><dd>Formular für Teilnehmer, dessen Einträge verknüpft als Marker erscheinen.</dd>
       </dl>
-      <p class="text-xs text-base-content/50 pt-4">OpenRescueSim · Hilfe · Stand September 2026</p>
+      <p class="text-xs text-base-content/50 pt-4">Open Rescue Simulation Server · Hilfe · Stand September 2026</p>
     </section>
   </main>
 </div>

@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=OpenResqueSim
+Name=Open Rescue Simulation Server
 Comment=Low-latency Video Mixer & Recorder
 Exec=/usr/bin/openresquesim-server
 Icon=openresquesim

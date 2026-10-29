@@ -1,6 +1,6 @@
 # Ende-zu-Ende-Tests
 
-Die Tests starten einen eigenen OpenRescueSim-Server mit frischer Datenbank in einem
+Die Tests starten einen eigenen Open Rescue Simulation Server mit frischer Datenbank in einem
 Temp-Ordner (Port 18493), steuern Headless-Chrome über das DevTools-Protokoll und prüfen
 das Verhalten wie ein Nutzer: Bild, Ton, Aufnahme, Oberfläche. Der laufende Produktiv-
 oder Entwicklungsserver bleibt unberührt.
