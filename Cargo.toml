@@ -21,6 +21,7 @@ recommends = "avahi-daemon, alsa-utils"
 depends = "debconf (>= 0.5) | debconf-2.0, adduser, sudo, openssl, libgstreamer1.0-0, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, gstreamer1.0-nice, gstreamer1.0-alsa, gstreamer1.0-tools, libglib2.0-0, libssl3, libsqlite3-0, ffmpeg, mkcert, libnss3-tools"
 
 assets = [
+  ["target/release/openresquesim_server", "usr/bin/openresquesim-server", "755"],
   ["src/assets/openresquesim.desktop", "usr/share/applications/openresquesim.desktop", "644"],
   ["src/assets/icons/openresquesim.svg", "usr/share/icons/hicolor/scalable/apps/openresquesim.svg", "644"],
   ["src/web/index.html", "usr/share/openresquesim/web/index.html", "644"],

@@ -7,3 +7,5 @@ Nutzerinfo.md               export-ignore
 scripts/export_public.sh    export-ignore
 scripts/anonymize_export.py export-ignore
 scripts/update_public.sh    export-ignore
+scripts/release.sh          export-ignore
+scripts/release.Dockerfile  export-ignore
