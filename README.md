@@ -29,63 +29,80 @@ Lizenz: [GPLv3](LICENSE). Fremdbestandteile: [THIRD_PARTY_NOTICES.md](THIRD_PART
 - **Verwaltung**: Benutzer und Rollen (Admin/Nutzer), Registrierung per Einladungs-Token, Systemstatus mit
   Live-Logs, HTTPS-Einrichtung per Knopf, Hilfe direkt in der Oberfläche (`/help/`).
 
-## Schnellstart
+## Installation
 
-### Debian-Paket (empfohlen)
+Voraussetzung: ein Rechner mit **Debian 13 (Trixie), amd64**, im selben Netz wie Kameras und Geräte. Für die
+Installation braucht er einmal Internet (für die Pakete aus Debian, z.B. GStreamer und FFmpeg), danach nicht mehr.
 
+1. Das aktuelle Paket `openresquesim-server_<version>_amd64.deb` von der
+   **[Releases-Seite](../../releases/latest)** herunterladen.
+2. Installieren – mit `apt`, nicht mit `dpkg -i`, damit alle benötigten Pakete mitkommen:
+   ```bash
+   sudo apt install ./openresquesim-server_*_amd64.deb
+   ```
+3. Die Installation stellt drei Fragen:
+
+   | Frage | Standard | Hinweis |
+   |---|---|---|
+   | Port der Weboberfläche | 8393 | Ohne Grund nicht ändern, die Geräte erwarten ihn. |
+   | HTTPS jetzt einrichten? | ja | Nötig für Durchsagen aus dem Browser. Namen/IPs für das Zertifikat: leer lassen = automatisch. |
+   | Firewall öffnen? | ja | Nur wenn die Firewall `ufw` aktiv ist. |
+
+4. Am Ende zeigt die Installation die Adresse, z.B. `http://192.168.1.20:8393/`. Im Browser öffnen: Ein Assistent
+   legt das Admin-Konto an. Fertig.
+
+Der Server läuft danach als Dienst `openresquesim` und startet mit dem Rechner. Bedienung, Einstellungen und die
+ausführliche Hilfe gibt es in der Oberfläche (Menü **Hilfe**).
+
+### Danach
+
+- **iPads/PCs der Ausbilder** (für Durchsagen): einmal das Wurzelzertifikat installieren. Download und QR-Code
+  unter **Optionen → Systemstatus → 🔒 HTTPS**, Anleitung in der Hilfe.
+- **Einstellungen der Installation ändern** (Port, HTTPS, Firewall): `sudo dpkg-reconfigure openresquesim-server`
+- **Ohne Fragen installieren** (Standardwerte): `sudo DEBIAN_FRONTEND=noninteractive apt install ./openresquesim-server_*_amd64.deb`
+
+### Update
+
+Neues Paket von der Releases-Seite laden und genauso installieren:
 ```bash
-cargo install cargo-deb      # einmalig, auf dem Build-Rechner
-cargo deb
-sudo apt install ./target/debian/openresquesim-server_*.deb
+sudo apt install ./openresquesim-server_*_amd64.deb
+```
+Einstellungen, Zertifikat, Datenbank und Aufnahmen bleiben, der Dienst startet von selbst neu.
+
+**Aus der Oberfläche** (Optionen → Einstellungen → Update) geht es auch, aber nur mit signierten Paketen: `.deb`
+und `.deb.sig` aus dem Release zusammen hochladen. Dafür einmal den Projektschlüssel `update-signing.pem` aus dem
+Release auf dem Server hinterlegen – nur, wenn du den Paketen dieses Projekts vertraust:
+```bash
+sudo install -D -m 644 update-signing.pem /etc/openresquesim/update-keys/openrescuesim.pem
 ```
 
-Die Installation ist geführt: Sie fragt nach dem Port der Weboberfläche, ob HTTPS gleich eingerichtet werden
-soll (mit welchen Namen/IPs und welchem Port) und – falls die Firewall ufw aktiv ist – ob sie geöffnet werden
-soll. Danach ist alles eingerichtet: Abhängigkeiten (GStreamer, FFmpeg, mkcert …), systemd-Dienst
-`openresquesim` (startet automatisch, auch nach einem Neustart), HTTPS-Zertifikat und Firewall.
-Der Dienst läuft als eigener Benutzer `openresquesim`; was root braucht (HTTPS einrichten, Update, Neustart,
-Herunterfahren), ist einzeln in `/etc/sudoers.d/openresquesim` freigegeben.
-
-Am Ende zeigt die Installation die Adresse an, z.B. `http://<server>:8393/`. Dort legt der
-Einrichtungsassistent das Admin-Konto an.
-
-- Antworten später ändern: `sudo dpkg-reconfigure openresquesim-server`
-- Ohne Fragen installieren (Standardwerte): `sudo DEBIAN_FRONTEND=noninteractive apt install ./…deb`
-- Updates: neues Paket genauso installieren; Einstellungen, Zertifikat, Datenbank und Aufnahmen bleiben.
-  Aus der Oberfläche nur signiert: `scripts/sign_update.sh --init` (einmalig), öffentlichen Schlüssel auf dem
-  Server nach `/etc/openresquesim/update-keys/` legen, dann je Paket `scripts/sign_update.sh <paket>.deb`.
-- Entfernen: `sudo apt purge openresquesim-server` löscht Dienst und Konfiguration, Datenbank und
-  Aufnahmen unter `/var/lib/openresquesim` bleiben erhalten.
-
-### Aus dem Quellcode
+### Entfernen
 
 ```bash
-sudo ./scripts/install_runtime_deps.sh   # GStreamer, FFmpeg, OpenSSL, SQLite
-cargo build --release
-./target/release/openresquesim_server
+sudo apt purge openresquesim-server
 ```
+Dienst, Einstellungen und Zertifikate werden entfernt. Datenbank und Aufnahmen unter `/var/lib/openresquesim`
+bleiben erhalten.
 
-Voraussetzungen zum Bauen: Rust (stable) sowie die GStreamer-Entwicklungspakete
-(`libgstreamer1.0-dev`, `libgstreamer-plugins-base1.0-dev`, `libgstreamer-plugins-bad1.0-dev`).
-Die Oberfläche nutzt Tailwind CSS mit daisyUI. Das fertige Stylesheet liegt im Repository
-(`src/web/frontend/static/dist/style.css`). Nach Änderungen an den Vorlagen neu bauen:
-`cd src/web/frontend && npm install && npm run build:css`.
+### Selbst bauen
 
-Ausführliche Einrichtung als Dienst (systemd, Audio-Rechte, Firewall für WebRTC): [Installscript.md](Installscript.md).
+`cargo deb` erzeugt dasselbe Paket unter `target/debian/` (Rust stable und die GStreamer-Entwicklungspakete
+nötig). Einrichtung ohne Paket: [Installscript.md](Installscript.md).
 
 ## HTTPS
 
 Browser geben das Mikrofon (Push-to-Talk) nur über HTTPS frei. Der Server lauscht dafür zusätzlich auf Port 8443.
-Einrichten lässt sich das als Admin unter **Optionen → Systemstatus → 🔒 HTTPS** oder auf dem Server mit
-`sudo ./scripts/setup_https.sh [namen/ips …]`. Das Skript erzeugt eine lokale Zertifizierungsstelle (mkcert).
-Ihr Wurzelzertifikat steht danach unter `http://<server>:8393/ca/ors-rootCA.crt` zum Installieren auf iPads und
-PCs bereit, auf der Systemseite auch als QR-Code.
+Die Installation richtet das auf Wunsch gleich ein; erneuern oder später einrichten als Admin unter
+**Optionen → Systemstatus → 🔒 HTTPS**. Es entsteht eine lokale Zertifizierungsstelle (mkcert, ohne Internet).
+Ihr Wurzelzertifikat steht unter `http://<server>:8393/ca/ors-rootCA.crt` zum Installieren auf iPads und PCs bereit,
+auf der Systemseite auch als QR-Code.
 
 Viewer, Pager, Raumlautsprecher und Notizblätter brauchen kein HTTPS.
 
 ## Konfiguration
 
-Alles Wichtige wird in der Oberfläche eingestellt. Für den Betrieb gibt es zusätzlich Umgebungsvariablen:
+Alles Wichtige wird in der Oberfläche eingestellt. Für den Betrieb gibt es zusätzlich Umgebungsvariablen
+(beim Paket in `/etc/openresquesim/server.env`, danach `sudo systemctl restart openresquesim`):
 
 | Variable | Bedeutung | Standard |
 |---|---|---|
