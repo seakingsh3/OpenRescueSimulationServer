@@ -1,8 +1,9 @@
 # Nicht in öffentliche Exporte (git archive / scripts/export_public.sh)
-log_push.txt        export-ignore
-ORS_Test/           export-ignore
-.vscode/            export-ignore
-scripts/export_public.sh    export-ignore
-scripts/anonymize_export.py export-ignore
+# Interne Notizen und Werkzeuge
 Handover_*.md               export-ignore
 Voice_of_Room_Konzept.md    export-ignore
+Updates_Snapshot.md         export-ignore
+Nutzerinfo.md               export-ignore
+scripts/export_public.sh    export-ignore
+scripts/anonymize_export.py export-ignore
+scripts/update_public.sh    export-ignore

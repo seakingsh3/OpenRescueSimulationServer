@@ -450,19 +450,22 @@ async function loadUpdateFiles() {
     const res = await _fetchJson('/api/admin/update/list', { method: 'GET' });
     const files = Array.isArray(res.files) ? res.files : [];
     if (!box) return;
+    const keyHint = Number(res.keys) > 0 ? ''
+      : '<div class="text-amber-400 text-xs">Kein Update-Schlüssel auf dem Server hinterlegt – Installation aus der Oberfläche nicht möglich (siehe Hilfe → Update).</div>';
     if (!files.length) {
-      box.innerHTML = '<div class="text-gray-500 text-xs">Keine Updates hochgeladen.</div>';
+      box.innerHTML = keyHint + '<div class="text-gray-500 text-xs">Keine Updates hochgeladen.</div>';
     } else {
       box.innerHTML = files.map(f => {
         const sizeMb = (Number(f.size) || 0) / (1024 * 1024);
         return `<div class="flex items-center justify-between bg-gray-900/50 border border-gray-800 rounded-lg px-3 py-2">
           <div>
             <div class="font-mono text-xs">${escapeHtml(f.name)}</div>
-            <div class="text-[11px] text-gray-400">${sizeMb.toFixed(1)} MB</div>
+            <div class="text-[11px] text-gray-400">${sizeMb.toFixed(1)} MB · ${f.signed ? '🔏 signiert' : '<span class="text-amber-400">Signatur fehlt (.sig hochladen)</span>'}</div>
           </div>
-          <button class="btn btn-xs bg-green-600 text-white border-none" data-action="install-update" data-path="${escapeHtml(f.path)}">Installieren</button>
+          <button class="btn btn-xs bg-green-600 text-white border-none" data-action="install-update" data-path="${escapeHtml(f.path)}" ${f.signed && Number(res.keys) > 0 ? '' : 'disabled'}>Installieren</button>
         </div>`;
       }).join('');
+      box.innerHTML = keyHint + box.innerHTML;
     }
     if (status) status.textContent = '';
   } catch (e) {
@@ -475,26 +478,27 @@ async function loadUpdateFiles() {
 async function uploadUpdateFile() {
   const input = document.getElementById('adminUpdateFile');
   const status = document.getElementById('adminUpdateStatus');
-  if (!input || !input.files || !input.files[0]) {
-    if (status) status.textContent = 'Bitte .deb auswählen.';
+  const files = input && input.files ? [...input.files] : [];
+  if (!files.length) {
+    if (status) status.textContent = 'Bitte .deb und .deb.sig auswählen.';
     return;
   }
-  const file = input.files[0];
-  if (!file.name.endsWith('.deb')) {
-    if (status) status.textContent = 'Nur .deb erlaubt.';
+  if (files.some((f) => !/\.deb(\.sig)?$/.test(f.name))) {
+    if (status) status.textContent = 'Nur .deb und .deb.sig erlaubt.';
     return;
   }
-  const fd = new FormData();
-  fd.append('file', file);
   if (status) status.textContent = 'Lade hoch…';
   try {
-    const res = await authFetch('/api/admin/update/upload', {
-      method: 'POST',
-      headers: withAuthHeaders({}),
-      body: fd,
-    });
-    if (!res.ok) throw new Error('upload failed');
-    const data = await res.json().catch(() => ({}));
+    for (const file of files) {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await authFetch('/api/admin/update/upload', {
+        method: 'POST',
+        headers: withAuthHeaders({}),
+        body: fd,
+      });
+      if (!res.ok) throw new Error('upload failed: ' + file.name);
+    }
     if (status) status.textContent = 'Upload ok';
     showToast('Update hochgeladen ✅', true);
     input.value = '';
@@ -509,20 +513,55 @@ async function uploadUpdateFile() {
 async function installUpdate(path) {
   const status = document.getElementById('adminUpdateStatus');
   if (!path) return;
-  if (!confirm('Update installieren? Service wird neu gestartet.')) return;
-  if (status) status.textContent = 'Installiere…';
+  if (!confirm('Update installieren? Der Dienst startet dabei neu; eine laufende Session wird beendet.')) return;
+  if (status) status.textContent = 'Starte Update…';
   try {
     const res = await _fetchJson('/api/admin/update/install', { method: 'POST', body: { path } });
-    const ok = res.ok !== false;
-    if (status) status.textContent = ok ? 'Installiert' : 'Fehler';
-    showToast(ok ? 'Update installiert ✅' : 'Update fehlgeschlagen ❌', ok);
-    if (res.stderr) console.log('dpkg stderr:', res.stderr);
-    loadUpdateFiles();
+    if (res.ok === false) {
+      if (status) status.textContent = res.error || 'Fehler';
+      showToast('Update fehlgeschlagen ❌', false);
+      return;
+    }
+    pollUpdate();
   } catch (e) {
     console.error('installUpdate failed', e);
     if (status) status.textContent = 'Installationsfehler';
     showToast('Update fehlgeschlagen ❌', false);
   }
+}
+
+// Update läuft als eigene systemd-Unit; Log abfragen, auch über den Dienst-Neustart hinweg
+let updatePollTimer = null;
+function pollUpdate() {
+  const status = document.getElementById('adminUpdateStatus');
+  const logEl = document.getElementById('adminUpdateLog');
+  const started = Date.now();
+  let sawRunning = false;
+  clearTimeout(updatePollTimer);
+  const tick = async () => {
+    let st = null;
+    try { st = await _fetchJson('/api/admin/update/status'); } catch { /* Dienst startet neu */ }
+    if (st) {
+      if (logEl) {
+        logEl.classList.remove('hidden');
+        logEl.textContent = st.log || '';
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+      if (st.running) sawRunning = true;
+      if (!st.running && (sawRunning || Date.now() - started > 5000)) {
+        const failed = /^E: |dpkg: error|Fehler/m.test(st.log || '');
+        if (status) status.textContent = failed ? 'Update fehlgeschlagen – siehe Log' : `Fertig – Version ${st.version}`;
+        showToast(failed ? 'Update fehlgeschlagen ❌' : 'Update installiert ✅', !failed);
+        loadUpdateFiles();
+        return;
+      }
+      if (status) status.textContent = 'Update läuft…';
+    } else if (status) {
+      status.textContent = 'Dienst startet neu…';
+    }
+    if (Date.now() - started < 15 * 60 * 1000) updatePollTimer = setTimeout(tick, 2000);
+  };
+  tick();
 }
 
 async function createUser() {

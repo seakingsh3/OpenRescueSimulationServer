@@ -89,7 +89,7 @@
       </div>
       <datalist id="speakerGroupsList"></datalist>
       <div class="text-xs text-gray-400">
-        Neues Gerät: Client <code>ors-speaker</code> auf dem Raspberry Pi installieren (Ordner <code>speaker/</code> im Projekt,
+        Neues Gerät: Client <code>ors-speaker</code> auf dem Raspberry Pi installieren (Geräte-Repository OpenRescueSim-Devices, Ordner <code>speaker_pi/</code>,
         Anleitung in der Hilfe). Nach dem Start erscheint es hier automatisch. Gruppen entstehen durch Eintippen im Feld „Gruppe“.
       </div>
     </section>
@@ -236,17 +236,18 @@
 
       <div class="border-t border-gray-800 pt-4 space-y-2">
         <div class="flex items-center justify-between">
-          <h3 class="font-semibold text-gray-200 text-sm">🆙 Update (ohne APT)</h3>
+          <h3 class="font-semibold text-gray-200 text-sm">🆙 Update</h3>
           <div class="flex gap-2">
             <button id="adminUpdateList" class="btn btn-xs btn-outline">↻ Dateien</button>
           </div>
         </div>
-        <div class="text-xs text-gray-400">.deb hochladen oder aus Liste installieren.</div>
+        <div class="text-xs text-gray-400">Signiertes Paket hochladen: <code>.deb</code> und <code>.deb.sig</code> zusammen auswählen (Signatur mit <code>scripts/sign_update.sh</code>). Fehlende Abhängigkeiten holt apt mit; der Dienst startet am Ende neu.</div>
         <div class="flex flex-col gap-2 md:flex-row">
-          <input type="file" id="adminUpdateFile" accept=".deb" class="file-input file-input-sm file-input-bordered bg-base-300 text-base-content" />
+          <input type="file" id="adminUpdateFile" accept=".deb,.sig" multiple class="file-input file-input-sm file-input-bordered bg-base-300 text-base-content" />
           <button id="adminUpdateUpload" class="btn btn-sm btn-primary">Hochladen</button>
         </div>
         <div id="adminUpdateStatus" class="text-xs text-gray-400"></div>
+        <pre id="adminUpdateLog" class="hidden max-h-64 overflow-auto whitespace-pre-wrap rounded bg-base-300 p-2 text-[11px] text-gray-300"></pre>
         <div id="adminUpdateListBox" class="space-y-2 text-sm text-gray-200"></div>
       </div>
 

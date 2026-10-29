@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+case "$1" in
+  purge)
+    # Konfiguration und HTTPS-Dateien entfernen. Datenbank und Aufnahmen bleiben.
+    rm -f /etc/openresquesim/server.env /etc/openresquesim/tls.env /etc/openresquesim/https-names
+    rm -rf /etc/openresquesim/tls /etc/openresquesim/mkcert
+    rmdir /etc/openresquesim 2>/dev/null || true
+    rm -f /etc/systemd/system/openresquesim.service.d/tls.conf
+    rmdir /etc/systemd/system/openresquesim.service.d 2>/dev/null || true
+    rm -f /usr/share/openresquesim/web/frontend/static/ca/ors-rootCA.crt
+    if [ -e /usr/share/debconf/confmodule ]; then
+      . /usr/share/debconf/confmodule
+      db_purge || true
+    fi
+    if [ -d /var/lib/openresquesim ]; then
+      echo "Datenbank und Aufnahmen bleiben erhalten: /var/lib/openresquesim (bei Bedarf selbst löschen)."
+    fi
+    ;;
+esac
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+  [ -d /run/systemd/system ] && systemctl daemon-reload >/dev/null 2>&1 || true
+fi
+exit 0

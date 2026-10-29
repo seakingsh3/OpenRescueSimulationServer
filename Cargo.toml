@@ -1,6 +1,6 @@
 [package]
 name = "openresquesim_server"
-version = "2.1.0"
+version = "2.2.0"
 edition = "2021"
 description = "OpenRescueSim Server: Kamera-Aufzeichnung, Live-Stream, Marker und Debriefing für Einsatz-Simulationstraining"
 
@@ -11,10 +11,16 @@ maintainer = "OpenRescueSim-Projekt <noreply@openrescuesim.invalid>"
 license-file = "LICENSE"
 section = "video"
 priority = "optional"
-depends = "libgstreamer1.0-0, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, gstreamer1.0-nice, gstreamer1.0-alsa, gstreamer1.0-tools, libglib2.0-0, libssl3, libsqlite3-0, ffmpeg, mkcert, libnss3-tools"
+extended-description = """\
+Nimmt Kameras und Mikrofone im Übungsraum auf, zeigt das Bild live auf
+Zuschauer-Bildschirmen, erlaubt Marker und Durchsagen während der Übung und stellt
+alles fürs Debriefing bereit. Läuft im lokalen Netz, Bedienung im Browser.
+Die Installation fragt Port, HTTPS und Firewall ab und richtet den Dienst ein."""
+maintainer-scripts = "debian/"
+recommends = "avahi-daemon, alsa-utils"
+depends = "debconf (>= 0.5) | debconf-2.0, adduser, sudo, openssl, libgstreamer1.0-0, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, gstreamer1.0-nice, gstreamer1.0-alsa, gstreamer1.0-tools, libglib2.0-0, libssl3, libsqlite3-0, ffmpeg, mkcert, libnss3-tools"
 
 assets = [
-  ["target/release/openresquesim_server", "usr/bin/openresquesim-server", "755"],
   ["src/assets/openresquesim.desktop", "usr/share/applications/openresquesim.desktop", "644"],
   ["src/assets/icons/openresquesim.svg", "usr/share/icons/hicolor/scalable/apps/openresquesim.svg", "644"],
   ["src/web/index.html", "usr/share/openresquesim/web/index.html", "644"],
@@ -24,16 +30,10 @@ assets = [
   ["scripts/install_runtime_deps.sh", "usr/share/openresquesim/scripts/install_runtime_deps.sh", "755"],
   ["scripts/first_start.sh", "usr/share/openresquesim/scripts/first_start.sh", "755"],
   ["scripts/setup_https.sh", "usr/share/openresquesim/scripts/setup_https.sh", "755"],
+  ["scripts/install_update.sh", "usr/share/openresquesim/scripts/install_update.sh", "755"],
+  ["debian/openresquesim.service", "usr/lib/systemd/system/openresquesim.service", "644"],
   ["scripts/sudoers.openresquesim", "etc/sudoers.d/openresquesim", "440"],
-  ["speaker/ors-speaker.py", "usr/share/openresquesim/speaker/ors-speaker.py", "755"],
-  ["speaker/install_speaker.sh", "usr/share/openresquesim/speaker/install_speaker.sh", "755"],
-  ["speaker/ors-speaker.conf.example", "usr/share/openresquesim/speaker/ors-speaker.conf.example", "644"],
-  ["speaker/ors-speaker.service", "usr/share/openresquesim/speaker/ors-speaker.service", "644"],
-  ["speaker/README.md", "usr/share/openresquesim/speaker/README.md", "644"],
-  ["Voice_of_Room_Konzept.md", "usr/share/openresquesim/doc/Voice_of_Room_Konzept.md", "644"],
   ["Installscript.md", "usr/share/openresquesim/doc/Installscript.md", "644"],
-  ["Nutzerinfo.md", "usr/share/openresquesim/doc/Nutzerinfo.md", "644"],
-  ["Updates_Snapshot.md", "usr/share/openresquesim/doc/Updates_Snapshot.md", "644"],
   ["THIRD_PARTY_NOTICES.md", "usr/share/openresquesim/doc/THIRD_PARTY_NOTICES.md", "644"]
 ]
 

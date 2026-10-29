@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+# Beim Entfernen den Dienst anhalten; bei Updates startet postinst ihn neu.
+case "$1" in
+  remove|deconfigure)
+    if [ -d /run/systemd/system ]; then
+      systemctl stop openresquesim.service >/dev/null 2>&1 || true
+      systemctl disable openresquesim.service >/dev/null 2>&1 || true
+    fi
+    ;;
+esac
+exit 0

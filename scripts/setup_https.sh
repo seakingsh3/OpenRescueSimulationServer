@@ -36,6 +36,14 @@ else
   while read -r ip; do [[ -n "$ip" ]] && NAMES+=("$ip"); done < <(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.' || true)
 fi
 
+# Nur Hostnamen und IP-Adressen zulassen (das Skript läuft per sudo auch für den Dienstbenutzer)
+for n in "${NAMES[@]}"; do
+  if ! [[ "$n" =~ ^[A-Za-z0-9][A-Za-z0-9.-]{0,252}$ || "$n" =~ ^[0-9A-Fa-f:.]+$ ]]; then
+    echo "Ungültiger Name/IP: $n" >&2
+    exit 2
+  fi
+done
+
 echo "==> Pakete (mkcert, NSS-Tools, Avahi für <hostname>.local)"
 # Nur nachinstallieren, was fehlt – im Übungsnetz gibt es oft kein Internet. Das
 # Debian-Paket bringt mkcert und libnss3-tools als Abhängigkeit mit.
@@ -43,7 +51,11 @@ missing=()
 command -v mkcert >/dev/null 2>&1 || missing+=(mkcert)
 command -v certutil >/dev/null 2>&1 || missing+=(libnss3-tools)
 command -v avahi-daemon >/dev/null 2>&1 || missing+=(avahi-daemon)
-if [[ ${#missing[@]} -gt 0 ]]; then
+if [[ ${#missing[@]} -gt 0 && -n "${ORS_HTTPS_NO_APT:-}" ]]; then
+  # Aufruf aus der Paketinstallation: dpkg ist gesperrt, apt geht hier nicht
+  echo "    fehlt: ${missing[*]} (wird nicht nachinstalliert)"
+  command -v mkcert >/dev/null 2>&1 || { echo "FEHLER: mkcert fehlt." >&2; exit 1; }
+elif [[ ${#missing[@]} -gt 0 ]]; then
   echo "    installiere: ${missing[*]}"
   if ! { apt-get update -qq && apt-get install -y --no-install-recommends "${missing[@]}" >/dev/null; }; then
     if ! command -v mkcert >/dev/null 2>&1; then
@@ -95,7 +107,7 @@ cat > "/etc/systemd/system/${UNIT}.d/tls.conf" <<EOF
 [Service]
 EnvironmentFile=-/etc/openresquesim/tls.env
 EOF
-systemctl daemon-reload
+systemctl daemon-reload 2>/dev/null || true
 if systemctl is-active --quiet "$UNIT"; then
   systemctl restart "$UNIT"
   echo "==> $UNIT neu gestartet"
@@ -108,7 +120,7 @@ echo
 echo "Fertig. HTTPS-Adresse für Ausbilder-Geräte:  https://${NAMES[0]}:${PORT}/ui"
 echo "Wurzelzertifikat auf iPad/PC installieren:"
 if [[ -n "$STATIC_DIR" ]]; then
-  echo "  Download:  http://${NAMES[0]}:8393/static/ca/ors-rootCA.crt   (oder per AirDrop: $TLS_DIR/rootCA.pem)"
+  echo "  Download:  http://${NAMES[0]}:${ORS_HTTP_PORT:-8393}/ca/ors-rootCA.crt   (oder per AirDrop: $TLS_DIR/rootCA.pem)"
 else
   echo "  Datei:     $TLS_DIR/rootCA.pem (per AirDrop/Mail auf das Gerät)"
 fi

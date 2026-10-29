@@ -5,9 +5,9 @@
 //! außerhalb des Dienstes – der Neustart reißt es so nicht mit. Die Ausgabe landet in
 //! einer Logdatei, die die Oberfläche anzeigt.
 //!
-//! Rechte: Läuft der Dienst als root, startet er `systemd-run` direkt. Sonst über
-//! `sudo -n` mit der Regel aus `/etc/sudoers.d/openresquesim` (liegt im Debian-Paket und
-//! erlaubt genau diesen Aufruf). Fehlt beides, meldet die Oberfläche das.
+//! Rechte: über `sudo -n` mit der Regel aus `/etc/sudoers.d/openresquesim` (liegt im
+//! Debian-Paket und erlaubt genau diesen Aufruf), siehe `privileged.rs`. Fehlt sie, meldet
+//! die Oberfläche das.
 //! Es gibt keine freien Befehle: Nur Hostnamen/IP-Adressen werden als Argumente übergeben.
 
 use std::path::{Path, PathBuf};
@@ -21,7 +21,7 @@ use crate::routes::AuthUser;
 use crate::state::AppCtx;
 
 const UNIT: &str = "ors-https-setup";
-const LOG_FILE: &str = "/var/log/openresquesim-https-setup.log";
+const LOG_NAME: &str = "https-setup.log";
 const DEFAULT_CERT: &str = "/etc/openresquesim/tls/server.pem";
 
 fn require_admin(user: &AuthUser) -> Result<(), StatusCode> {
@@ -37,7 +37,7 @@ fn log_path() -> PathBuf {
     if test_script().is_some() {
         crate::db::app_dirs().base_dir.join("https-setup.log")
     } else {
-        PathBuf::from(LOG_FILE)
+        crate::privileged::log_path(LOG_NAME)
     }
 }
 
@@ -50,10 +50,6 @@ fn script_path() -> Option<PathBuf> {
         .map(PathBuf::from)
         .find(|p| p.is_file())
         .map(|p| std::fs::canonicalize(&p).unwrap_or(p))
-}
-
-fn is_root() -> bool {
-    unsafe { libc::geteuid() == 0 }
 }
 
 /// Nur Hostnamen (Buchstaben, Ziffern, Bindestrich, Punkt) und IP-Adressen zulassen
@@ -70,21 +66,13 @@ fn valid_name(n: &str) -> bool {
         })
 }
 
-fn unit_active() -> bool {
-    Command::new("systemctl")
-        .args(["is-active", "--quiet", UNIT])
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
-}
-
 static TEST_RUNNING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 fn running() -> bool {
     if test_script().is_some() {
         TEST_RUNNING.load(std::sync::atomic::Ordering::Relaxed)
     } else {
-        unit_active()
+        crate::privileged::unit_active(UNIT)
     }
 }
 
@@ -126,7 +114,10 @@ pub async fn https_status(user: AuthUser, State(_ctx): State<AppCtx>) -> Result<
     let log = std::fs::read_to_string(log_path()).unwrap_or_default();
     let log_tail: String = log.lines().rev().take(200).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n");
     let root_ca = root_ca_path().is_some();
-    let can_run = script_path().is_some() && (test_script().is_some() || is_root() || Path::new("/etc/sudoers.d/openresquesim").exists());
+    let can_run = match script_path() {
+        Some(script) => test_script().is_some() || crate::privileged::can_start_unit(UNIT, &log_path(), &script),
+        None => false,
+    };
     Ok(Json(json!({
         "tls_active": tls_active,
         "tls_port": tls_bind.rsplit(':').next().unwrap_or("8443"),
@@ -136,7 +127,7 @@ pub async fn https_status(user: AuthUser, State(_ctx): State<AppCtx>) -> Result<
         "root_ca_download": root_ca.then_some("/ca/ors-rootCA.crt"),
         "can_run": can_run,
         "reason": if script_path().is_none() { Some("Skript setup_https.sh nicht gefunden") }
-                  else if !can_run { Some("Server läuft nicht als root und es gibt keine sudo-Regel (/etc/sudoers.d/openresquesim)") }
+                  else if !can_run { Some("Ohne Rechte: Die sudo-Regel (/etc/sudoers.d/openresquesim) fehlt oder passt nicht – Paket neu installieren") }
                   else { None },
     })))
 }
@@ -167,7 +158,7 @@ pub async fn https_setup(
         return Err((StatusCode::NOT_FOUND, Json(json!({"error": "Skript setup_https.sh nicht gefunden"}))));
     };
     let log = log_path();
-    let _ = std::fs::write(&log, format!("Gestartet von {} …\n", user.username));
+    crate::privileged::start_log(&log, &format!("Gestartet von {} …", user.username));
     tracing::warn!(by = %user.username, ?names, "🔒 HTTPS-Einrichtung aus der Oberfläche gestartet");
 
     // Testbetrieb: Ersatzskript direkt, Ausgabe in die Logdatei
@@ -185,30 +176,12 @@ pub async fn https_setup(
     }
 
     // Eigene systemd-Unit, damit der Dienst-Neustart am Ende das Skript nicht beendet
-    let log_arg = format!("append:{}", log.display());
-    let mut args: Vec<String> = vec![
-        "--unit".into(), UNIT.into(), "--collect".into(), "--quiet".into(),
-        "-p".into(), format!("StandardOutput={log_arg}"),
-        "-p".into(), format!("StandardError={log_arg}"),
-        script.display().to_string(),
-    ];
-    args.extend(names);
-    let status = if is_root() {
-        Command::new("systemd-run").args(&args).status()
-    } else {
-        // sudo -n: nie nach einem Passwort fragen; erlaubt ist nur dieser Aufruf (sudoers-Regel)
-        Command::new("sudo").arg("-n").arg("systemd-run").args(&args).status()
-    };
-    match status {
-        Ok(s) if s.success() => Ok(Json(json!({"ok": true}))),
-        Ok(s) => {
-            let msg = if is_root() { format!("systemd-run fehlgeschlagen ({s})") } else {
-                "Keine Rechte: Der Server läuft nicht als root, und sudo erlaubt den Aufruf nicht (Regel /etc/sudoers.d/openresquesim)".into()
-            };
-            let _ = std::fs::write(&log, format!("{msg}\n"));
+    match crate::privileged::start_unit(UNIT, &log, &script, &names) {
+        Ok(()) => Ok(Json(json!({"ok": true}))),
+        Err(msg) => {
+            crate::privileged::start_log(&log, &msg);
             Err((StatusCode::FORBIDDEN, Json(json!({"error": msg}))))
         }
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
 }
 

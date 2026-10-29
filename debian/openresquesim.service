@@ -1,0 +1,51 @@
+[Unit]
+Description=OpenRescueSim Server
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Eigener Benutzer statt root. Was root braucht (HTTPS, Update, Neustart/Herunterfahren),
+# ist einzeln in /etc/sudoers.d/openresquesim freigegeben.
+User=openresquesim
+Group=openresquesim
+# ALSA-Audiogeräte und USB-Kameras
+SupplementaryGroups=audio video
+# sudo braucht das Setuid-Bit, deshalb kein NoNewPrivileges
+NoNewPrivileges=false
+
+# Einstellungen aus der Installation (Port); HTTPS kommt per Drop-in tls.conf dazu
+EnvironmentFile=-/etc/openresquesim/server.env
+
+# Audio-Geräte (ALSA) sichtbar lassen
+PrivateDevices=false
+
+StateDirectory=openresquesim
+CacheDirectory=openresquesim
+LogsDirectory=openresquesim
+RuntimeDirectory=openresquesim
+
+Environment=HOME=/var/lib/openresquesim
+Environment=XDG_DATA_HOME=/var/lib/openresquesim
+Environment=XDG_STATE_HOME=/var/lib/openresquesim
+Environment=XDG_CACHE_HOME=/var/cache/openresquesim
+Environment=XDG_RUNTIME_DIR=/run/openresquesim
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=NO_AT_BRIDGE=1
+
+WorkingDirectory=/var/lib/openresquesim
+ExecStart=/usr/bin/openresquesim-server
+
+Restart=always
+RestartSec=5
+
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/openresquesim /var/cache/openresquesim /run/openresquesim /var/log/openresquesim
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

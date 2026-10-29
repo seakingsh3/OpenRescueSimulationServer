@@ -1,0 +1,45 @@
+#!/bin/sh
+# Fragen der geführten Installation (debconf). Erneut stellen: sudo dpkg-reconfigure openresquesim-server
+set -e
+. /usr/share/debconf/confmodule
+
+valid_port() {
+  case "$1" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+
+# Port abfragen, bis er gültig ist. Wird die Frage nicht angezeigt (z.B. nicht-interaktive
+# Installation), nicht endlos wiederholen – postinst fällt dann auf den Standard zurück.
+ask_port() { # $1 = Frage, $2 = Port, der nicht erlaubt ist (oder leer)
+  while :; do
+    shown=0
+    db_input high "$1" && shown=1 || true
+    db_go || true
+    db_get "$1"
+    if valid_port "$RET" && [ "$RET" != "$2" ]; then return 0; fi
+    [ "$shown" = 1 ] || return 0
+    db_input critical openresquesim-server/invalid_port || true
+    db_go || true
+    db_fset "$1" seen false || true
+  done
+}
+
+ask_port openresquesim-server/http_port ""
+db_get openresquesim-server/http_port; http="$RET"
+
+db_input high openresquesim-server/https_enable || true
+db_go || true
+db_get openresquesim-server/https_enable
+if [ "$RET" = "true" ]; then
+  db_input high openresquesim-server/https_names || true
+  db_go || true
+  ask_port openresquesim-server/https_port "$http"
+fi
+
+# Firewall nur fragen, wenn ufw installiert und aktiv ist
+if command -v ufw >/dev/null 2>&1 && LC_ALL=C ufw status 2>/dev/null | grep -q "Status: active"; then
+  db_input high openresquesim-server/firewall || true
+  db_go || true
+fi
+
+exit 0

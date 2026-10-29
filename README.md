@@ -39,9 +39,23 @@ cargo deb
 sudo apt install ./target/debian/openresquesim-server_*.deb
 ```
 
-Das Paket bringt die Abhängigkeiten (GStreamer, FFmpeg, mkcert …) und die Hilfsskripte mit. Den Dienst
-(systemd-Unit) richtest du nach [Installscript.md](Installscript.md) ein. Danach `http://<server>:8393` öffnen. Beim ersten Aufruf führt eine Ersteinrichtung durch Admin-Konto und
-Grundeinstellungen.
+Die Installation ist geführt: Sie fragt nach dem Port der Weboberfläche, ob HTTPS gleich eingerichtet werden
+soll (mit welchen Namen/IPs und welchem Port) und – falls die Firewall ufw aktiv ist – ob sie geöffnet werden
+soll. Danach ist alles eingerichtet: Abhängigkeiten (GStreamer, FFmpeg, mkcert …), systemd-Dienst
+`openresquesim` (startet automatisch, auch nach einem Neustart), HTTPS-Zertifikat und Firewall.
+Der Dienst läuft als eigener Benutzer `openresquesim`; was root braucht (HTTPS einrichten, Update, Neustart,
+Herunterfahren), ist einzeln in `/etc/sudoers.d/openresquesim` freigegeben.
+
+Am Ende zeigt die Installation die Adresse an, z.B. `http://<server>:8393/`. Dort legt der
+Einrichtungsassistent das Admin-Konto an.
+
+- Antworten später ändern: `sudo dpkg-reconfigure openresquesim-server`
+- Ohne Fragen installieren (Standardwerte): `sudo DEBIAN_FRONTEND=noninteractive apt install ./…deb`
+- Updates: neues Paket genauso installieren; Einstellungen, Zertifikat, Datenbank und Aufnahmen bleiben.
+  Aus der Oberfläche nur signiert: `scripts/sign_update.sh --init` (einmalig), öffentlichen Schlüssel auf dem
+  Server nach `/etc/openresquesim/update-keys/` legen, dann je Paket `scripts/sign_update.sh <paket>.deb`.
+- Entfernen: `sudo apt purge openresquesim-server` löscht Dienst und Konfiguration, Datenbank und
+  Aufnahmen unter `/var/lib/openresquesim` bleiben erhalten.
 
 ### Aus dem Quellcode
 
@@ -90,12 +104,8 @@ Start automatisch.
 
 ## Zusatzgeräte
 
-| Ordner | Gerät |
-|---|---|
-| [`speaker/`](speaker/README.md) | Raumlautsprecher auf einem Raspberry Pi (Python, Opus über RTP) |
-| [`speaker-esp32/`](speaker-esp32/README.md) | Raumlautsprecher auf einem ESP32-C3 mit I²S-Verstärker (Entwurf) |
-| [`relay-onair/`](relay-onair/README.md) | „On-Air“-Lampe am Raumeingang, schaltet bei laufender Übung (ESP32-Relais) |
-| `ors_viewer/` | eigenständiger Zuschauer-Client (Rust, FFmpeg) |
+Raumlautsprecher (Raspberry Pi, ESP32) und die „On-Air“-Lampe am Raumeingang liegen in einem eigenen Repository:
+**OpenRescueSim-Devices** (auf GitHub neben diesem Projekt).
 
 ## Tests
 
@@ -122,7 +132,6 @@ Voraussetzungen und Details: [tests/e2e/README.md](tests/e2e/README.md).
 | `migrations/` | Datenbank-Migrationen |
 | `scripts/` | Installation, HTTPS-Einrichtung |
 | [`API_Befehle.md`](API_Befehle.md) | Übersicht der API |
-| [`Updates_Snapshot.md`](Updates_Snapshot.md) | Änderungsprotokoll |
 
 ## Mitmachen
 

@@ -22,7 +22,6 @@ use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::env;
 use std::process::Command;
-use tokio::process::Command as TokioCommand;
 use tokio::task::spawn_blocking;
 use tracing;
 // if you have a pipeline reload function:
@@ -961,8 +960,10 @@ pub async fn admin_update_list(user: AuthUser) -> Result<Json<JsonValue>, Status
                     let path = entry.path();
                     if name.ends_with(".deb") {
                         let meta = tokio::fs::metadata(&path).await.ok();
+                        let signed = dir.join(format!("{name}.sig")).is_file();
                         list.push(json!({
                             "name": name,
+                            "signed": signed,
                             "path": path.to_string_lossy(),
                             "size": meta.as_ref().map(|m| m.len()).unwrap_or(0),
                             "modified": meta
@@ -974,7 +975,7 @@ pub async fn admin_update_list(user: AuthUser) -> Result<Json<JsonValue>, Status
             }
         }
     }
-    Ok(Json(json!({ "files": list })))
+    Ok(Json(json!({ "files": list, "keys": update_key_count() })))
 }
 
 pub async fn admin_update_upload(
@@ -994,11 +995,16 @@ pub async fn admin_update_upload(
                 continue;
             }
         }
+        // Nur den Dateinamen übernehmen (kein Pfad, kein „..“), nur .deb und .deb.sig
         let filename = field
             .file_name()
-            .map(|s| s.to_string())
+            .and_then(|s| std::path::Path::new(s).file_name())
+            .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| "update.deb".into());
-        if !filename.ends_with(".deb") {
+        let name_ok = !filename.starts_with('.')
+            && filename.chars().all(|c| c.is_ascii_alphanumeric() || "._+-~".contains(c))
+            && (filename.ends_with(".deb") || filename.ends_with(".deb.sig"));
+        if !name_ok {
             return Err(StatusCode::BAD_REQUEST);
         }
         let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -1056,54 +1062,68 @@ pub async fn admin_update_install(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    info!(
-        user_id = user.id,
-        canonical = %canonical.display(),
-        "update install: running dpkg -i"
-    );
-    let output = TokioCommand::new("dpkg")
-        .arg("-i")
-        .arg(&canonical)
-        .output()
-        .await
-        .map_err(|e| {
-            error!(
-                user_id = user.id,
-                canonical = %canonical.display(),
-                ?e,
-                "update install: dpkg execution failed"
-            );
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    let ok = output.status.success();
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-    info!(
-        user_id = user.id,
-        ok,
-        status = output.status.code(),
-        stdout_len = stdout.len(),
-        stderr_len = stderr.len(),
-        "update install: dpkg finished"
-    );
-    if !ok {
-        warn!(
-            user_id = user.id,
-            status = output.status.code(),
-            "update install: dpkg returned non-zero"
-        );
+    // Installiert wird von einem root-Hilfsskript als eigene systemd-Unit: Es prüft die
+    // Signatur (ein .deb führt Skripte als root aus) und übersteht den Dienst-Neustart, den
+    // das Paket am Ende auslöst. Siehe scripts/install_update.sh und privileged.rs.
+    if crate::privileged::unit_active(UPDATE_UNIT) {
+        return Ok(Json(json!({"ok": false, "error": "Update läuft bereits"})));
     }
-
-    if ok {
-        reload_pipeline().await;
+    let mut sig = canonical.clone().into_os_string();
+    sig.push(".sig");
+    if !std::path::Path::new(&sig).is_file() {
+        return Ok(Json(json!({"ok": false, "error": "Signatur fehlt: Paket mit scripts/sign_update.sh signieren und die .sig-Datei mit hochladen"})));
     }
+    if update_key_count() == 0 {
+        return Ok(Json(json!({"ok": false, "error": "Kein Update-Schlüssel auf dem Server hinterlegt (/etc/openresquesim/update-keys) – siehe Hilfe"})));
+    }
+    let Some(script) = update_script() else {
+        return Ok(Json(json!({"ok": false, "error": "install_update.sh nicht gefunden"})));
+    };
+    let log = crate::privileged::log_path(UPDATE_LOG_NAME);
+    crate::privileged::start_log(&log, &format!("Update {} gestartet von {} …", canonical.display(), user.username));
+    match crate::privileged::start_unit(UPDATE_UNIT, &log, &script, &[canonical.display().to_string()]) {
+        Ok(()) => {
+            info!(user_id = user.id, canonical = %canonical.display(), "update install: gestartet");
+            Ok(Json(json!({"ok": true, "started": true})))
+        }
+        Err(msg) => {
+            warn!(user_id = user.id, %msg, "update install: Start fehlgeschlagen");
+            crate::privileged::start_log(&log, &msg);
+            Ok(Json(json!({"ok": false, "error": msg})))
+        }
+    }
+}
 
+const UPDATE_UNIT: &str = "ors-update";
+const UPDATE_LOG_NAME: &str = "update.log";
+const UPDATE_KEY_DIR: &str = "/etc/openresquesim/update-keys";
+
+fn update_script() -> Option<std::path::PathBuf> {
+    ["/usr/share/openresquesim/scripts/install_update.sh", "scripts/install_update.sh"]
+        .iter()
+        .map(std::path::PathBuf::from)
+        .find(|p| p.is_file())
+        .map(|p| std::fs::canonicalize(&p).unwrap_or(p))
+}
+
+/// Anzahl hinterlegter öffentlicher Schlüssel für signierte Updates
+fn update_key_count() -> usize {
+    std::fs::read_dir(UPDATE_KEY_DIR)
+        .map(|rd| rd.flatten().filter(|e| e.path().extension().is_some_and(|x| x == "pem")).count())
+        .unwrap_or(0)
+}
+
+/// GET /api/admin/update/status – läuft ein Update, letzte Logzeilen
+pub async fn admin_update_status(user: AuthUser) -> Result<Json<JsonValue>, StatusCode> {
+    ensure_admin(&user)?;
+    let log = std::fs::read_to_string(crate::privileged::log_path(UPDATE_LOG_NAME)).unwrap_or_default();
+    let tail: Vec<&str> = log.lines().rev().take(200).collect();
+    let tail: Vec<&str> = tail.into_iter().rev().collect();
     Ok(Json(json!({
-        "ok": ok,
-        "status": output.status.code(),
-        "stdout": stdout,
-        "stderr": stderr
+        "running": crate::privileged::unit_active(UPDATE_UNIT),
+        "keys": update_key_count(),
+        "log": tail.join("\n"),
+        "version": env!("CARGO_PKG_VERSION"),
     })))
 }
 

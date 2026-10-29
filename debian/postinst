@@ -1,0 +1,139 @@
+#!/bin/sh
+# Geführte Installation, Teil 2: setzt die Antworten aus debian/config um.
+set -e
+
+UNIT=openresquesim.service
+ETC=/etc/openresquesim
+SHARE=/usr/share/openresquesim
+
+[ "$1" = "configure" ] || exit 0
+
+. /usr/share/debconf/confmodule
+
+valid_port() {
+  case "$1" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+
+db_get openresquesim-server/http_port; HTTP_PORT="$RET"
+valid_port "$HTTP_PORT" || HTTP_PORT=8393
+db_get openresquesim-server/https_enable; HTTPS="$RET"
+db_get openresquesim-server/https_names; HTTPS_NAMES="$RET"
+db_get openresquesim-server/https_port; HTTPS_PORT="$RET"
+valid_port "$HTTPS_PORT" && [ "$HTTPS_PORT" != "$HTTP_PORT" ] || HTTPS_PORT=8443
+FIREWALL=false
+if db_get openresquesim-server/firewall; then FIREWALL="$RET"; fi
+db_stop
+
+have_systemd() { [ -d /run/systemd/system ]; }
+
+# Eintrag KEY=WERT in einer Umgebungsdatei setzen, andere Zeilen bleiben erhalten
+set_env() { # $1 Datei, $2 Schlüssel, $3 Wert
+  if [ -f "$1" ] && grep -q "^$2=" "$1"; then
+    sed -i "s|^$2=.*|$2=$3|" "$1"
+  else
+    echo "$2=$3" >> "$1"
+  fi
+}
+
+# Dienstbenutzer (ersetzt den früheren Betrieb als root)
+SVC=openresquesim
+if ! getent passwd "$SVC" >/dev/null; then
+  adduser --system --group --home /var/lib/openresquesim --no-create-home --quiet "$SVC"
+fi
+for g in audio video; do
+  getent group "$g" >/dev/null && adduser --quiet "$SVC" "$g" >/dev/null 2>&1 || true
+done
+# Daten früherer root-Installationen übernehmen
+for d in /var/lib/openresquesim /var/cache/openresquesim /var/log/openresquesim; do
+  mkdir -p "$d"
+  if [ -n "$(find "$d" ! -user "$SVC" -print -quit 2>/dev/null)" ]; then
+    echo "==> Besitzer von $d auf $SVC umstellen"
+    chown -R "$SVC:$SVC" "$d"
+  fi
+done
+
+mkdir -p "$ETC" "$ETC/update-keys"
+# HTTPS-Schlüssel für den Dienst lesbar (nur Gruppe)
+if [ -f "$ETC/tls/server-key.pem" ]; then
+  chgrp "$SVC" "$ETC/tls/server-key.pem" && chmod 640 "$ETC/tls/server-key.pem"
+fi
+if [ ! -f "$ETC/server.env" ]; then
+  cat > "$ETC/server.env" <<EOF
+# Einstellungen für den Dienst openresquesim. Port ändern: sudo dpkg-reconfigure openresquesim-server
+# Weitere Variablen (siehe README) können hier ergänzt werden.
+EOF
+fi
+set_env "$ETC/server.env" ORS_BIND "0.0.0.0:$HTTP_PORT"
+# Bestehendes HTTPS auf den gewählten Port setzen
+[ -f "$ETC/tls.env" ] && set_env "$ETC/tls.env" ORS_TLS_BIND "0.0.0.0:$HTTPS_PORT"
+
+# Dienst einrichten und (neu) starten
+if have_systemd; then
+  if [ -f "/etc/systemd/system/$UNIT" ]; then
+    echo "Hinweis: /etc/systemd/system/$UNIT (manuell angelegt) hat Vorrang vor der Unit aus dem Paket."
+    echo "         Zum Umstieg: sudo rm /etc/systemd/system/$UNIT && sudo systemctl daemon-reload"
+  fi
+  systemctl daemon-reload || true
+  systemctl enable "$UNIT" >/dev/null 2>&1 || true
+  if systemctl is-active --quiet "$UNIT"; then
+    systemctl restart "$UNIT" || true
+  else
+    systemctl start "$UNIT" || true
+  fi
+fi
+
+# HTTPS: bei Neuinstallation, bei dpkg-reconfigure oder wenn sich die Namen geändert haben.
+# Bei einfachen Updates bleibt das vorhandene Zertifikat.
+if [ "$HTTPS" = "true" ]; then
+  OLD_NAMES="$(cat "$ETC/https-names" 2>/dev/null || true)"
+  if [ ! -f "$ETC/tls/server.pem" ] || [ -n "${DEBCONF_RECONFIGURE:-}" ] || [ "$OLD_NAMES" != "$HTTPS_NAMES" ]; then
+    echo "==> HTTPS einrichten"
+    # shellcheck disable=SC2086 # Namen bewusst an Leerzeichen trennen
+    if ORS_TLS_BIND="0.0.0.0:$HTTPS_PORT" ORS_HTTP_PORT="$HTTP_PORT" ORS_HTTPS_NO_APT=1 "$SHARE/scripts/setup_https.sh" $HTTPS_NAMES; then
+      printf '%s' "$HTTPS_NAMES" > "$ETC/https-names"
+    else
+      echo "Warnung: HTTPS-Einrichtung fehlgeschlagen. Später in der Oberfläche (Systemstatus → HTTPS) oder mit"
+      echo "         sudo $SHARE/scripts/setup_https.sh erneut versuchen."
+    fi
+  fi
+fi
+
+# Firewall
+if [ "$FIREWALL" = "true" ] && command -v ufw >/dev/null 2>&1 && LC_ALL=C ufw status 2>/dev/null | grep -q "Status: active"; then
+  echo "==> Firewall (ufw) öffnen"
+  ufw allow "$HTTP_PORT/tcp" comment OpenRescueSim >/dev/null || true
+  [ "$HTTPS" = "true" ] && { ufw allow "$HTTPS_PORT/tcp" comment OpenRescueSim >/dev/null || true; }
+  ufw allow 1024:65535/udp comment "OpenRescueSim WebRTC" >/dev/null || true
+fi
+
+# Zusammenfassung
+IP="$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.' | head -n1 || true)"
+[ -n "$IP" ] || IP="<server-ip>"
+echo
+echo "=================================================================="
+echo " OpenRescueSim ist installiert."
+if [ -n "${DEBCONF_RECONFIGURE:-}" ]; then
+  echo " Neue Einstellungen übernommen."
+elif [ -n "$2" ]; then
+  echo " Update von $2 abgeschlossen."
+else
+  echo " Weiter im Browser:  http://$IP:$HTTP_PORT/"
+  echo " Der Einrichtungsassistent legt dort das Admin-Konto an."
+fi
+if [ -f "$ETC/tls/server.pem" ]; then
+  echo " HTTPS (Durchsagen):  https://$IP:$HTTPS_PORT/ui"
+  echo " Wurzelzertifikat für iPads/PCs:  http://$IP:$HTTP_PORT/ca/ors-rootCA.crt"
+fi
+if have_systemd; then
+  echo " Dienst: systemctl status openresquesim   Log: journalctl -u openresquesim -f"
+fi
+if [ -z "$(ls "$ETC/update-keys" 2>/dev/null)" ]; then
+  echo " Updates aus der Oberfläche: einmal den öffentlichen Signaturschlüssel nach"
+  echo "   $ETC/update-keys/ legen (siehe Hilfe → Update; Schlüssel mit scripts/sign_update.sh --init)."
+fi
+echo " Aufnahmeordner außerhalb von /var/lib/openresquesim müssen dem Benutzer $SVC gehören."
+echo " Einstellungen erneut ändern: sudo dpkg-reconfigure openresquesim-server"
+echo "=================================================================="
+
+exit 0

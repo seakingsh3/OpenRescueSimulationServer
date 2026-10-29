@@ -29,6 +29,15 @@ module.exports = {
     let userOk = true;
     try { await user.login('e2e-user', 'e2e-userpass'); } catch { userOk = false; }
     if (userOk) t.check('Nicht-Admin: Logs abgelehnt', (await opens('/ws/logs?token=' + encodeURIComponent(user.token))) === false);
+    if (userOk) {
+      // Systemaktionen nur für Admins (Admin-Fall nicht testen: würde den Rechner neu starten)
+      for (const [path, label] of [['/api/host/reboot', 'Neustart'], ['/api/host/poweroff', 'Herunterfahren'], ['/api/host/service/restart', 'Dienst-Neustart']]) {
+        t.check(`Nicht-Admin: ${label} abgelehnt (403)`, (await user.post(path, {})).status === 403);
+      }
+      t.check('Nicht-Admin: Update-Status abgelehnt (403)', (await user.get('/api/admin/update/status')).status === 403);
+    }
+    const upd = await t.api.get('/api/admin/update/status');
+    t.check('Admin: Update-Status abrufbar', upd.status === 200 && typeof upd.json?.running === 'boolean' && !!upd.json?.version, upd.text);
     t.check('Admin: Logs erlaubt', (await opens('/ws/logs?token=' + encodeURIComponent(t.api.token))) === true);
 
     // Viewer-Bildschirm ohne Login bekommt das Bild über das Ticket aus show_live

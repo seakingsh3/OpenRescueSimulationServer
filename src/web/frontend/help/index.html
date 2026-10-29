@@ -193,8 +193,28 @@
     <section id="install" class="help-section card bg-base-200 border border-base-300 p-6 space-y-3" data-level="admin">
       <h2>🧱 Server installieren (Root-Ebene) <span class="admin-badge">Admin</span></h2>
       <p>Reproduzierbare Installation auf Debian 13 (Trixie) oder Debian 12 mit Backports-Kernel. Der Dienst läuft als
-        <b>root</b>, damit ALSA-Geräte, Systemaktionen und Updates ohne Gruppen- und Rechtepflege funktionieren.
-        Alle Daten liegen unter <code>/var/lib/openresquesim</code>.</p>
+        eigener Benutzer <code>openresquesim</code> (Gruppen <code>audio</code> und <code>video</code> für Audio-Interfaces und Kameras), nicht als root.
+        Was root braucht – HTTPS einrichten, Update installieren, Rechner neu starten oder herunterfahren –, ist einzeln in
+        <code>/etc/sudoers.d/openresquesim</code> freigegeben. Alle Daten liegen unter <code>/var/lib/openresquesim</code>.</p>
+
+      <h3>Schnellweg: geführte Installation mit dem Paket</h3>
+      <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>sudo apt install ./openresquesim-server_*.deb</code></pre>
+      <p>Mit <code>apt</code> (nicht <code>dpkg -i</code>) werden alle benötigten Fremdpakete mitinstalliert: GStreamer mit Plugins, FFmpeg, mkcert, NSS-Tools, empfohlen auch Avahi und ALSA-Werkzeuge. Die Installation fragt dann:</p>
+      <ol class="steps-list">
+        <li><b>Port der Weboberfläche</b> (Standard 8393).</li>
+        <li><b>HTTPS jetzt einrichten?</b> Mit Namen/IPs fürs Zertifikat (leer = automatisch) und HTTPS-Port (Standard 8443).</li>
+        <li><b>Firewall öffnen?</b> Nur wenn ufw aktiv ist: Weboberfläche, HTTPS und UDP für WebRTC.</li>
+      </ol>
+      <p>Danach läuft der Dienst <code>openresquesim</code> (startet auch nach einem Neustart), und die Installation zeigt die Adresse. Im Browser legt der Einrichtungsassistent das Admin-Konto an. Die Schritte 1–5 und 9 unten sind damit erledigt.</p>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Antworten ändern: <code>sudo dpkg-reconfigure openresquesim-server</code></li>
+        <li>Ohne Fragen (Standardwerte): <code>sudo DEBIAN_FRONTEND=noninteractive apt install ./openresquesim-server_*.deb</code></li>
+        <li>Ohne Internet: Die Fremdpakete müssen aus einer lokalen Paketquelle kommen oder schon installiert sein.</li>
+        <li>Entfernen: <code>sudo apt purge openresquesim-server</code> löscht Dienst, Einstellungen und Zertifikate; Datenbank und Aufnahmen bleiben.</li>
+      </ul>
+      <div class="tip">Eine früher von Hand angelegte <code>/etc/systemd/system/openresquesim.service</code> hat Vorrang vor der Unit aus dem Paket. Zum Umstieg löschen und <code>sudo systemctl daemon-reload</code> ausführen.</div>
+
+      <h3>Von Hand (ohne Paket oder zum Nachvollziehen)</h3>
 
       <h3>1 · Voraussetzungen</h3>
       <ul class="list-disc pl-6 space-y-1">
@@ -214,12 +234,16 @@
       <p>Entweder als Debian-Paket oder als Binary aus dem Quellbaum.</p>
       <ol class="steps-list">
         <li><b>Paket bauen</b> (auf einem Rechner mit Rust-Toolchain): <code>cargo install cargo-deb</code>, dann im Projekt <code>cargo deb</code>. Das Paket liegt danach unter <code>target/debian/openresquesim-server_*.deb</code> und enthält Binary, Web-Oberfläche, Hilfe, Desktop-Eintrag und Icon.</li>
-        <li><b>Paket installieren</b>: <code>sudo dpkg -i openresquesim-server_*.deb</code>. Das Binary landet als <code>/usr/bin/openresquesim-server</code>, die Web-Dateien unter <code>/usr/share/openresquesim/web</code>.</li>
+        <li><b>Paket installieren</b>: <code>sudo apt install ./openresquesim-server_*.deb</code> (geführt, siehe oben). Das Binary landet als <code>/usr/bin/openresquesim-server</code>, die Web-Dateien unter <code>/usr/share/openresquesim/web</code>.</li>
         <li><b>Alternative ohne Paket</b>: <code>cargo build --release</code> und <code>target/release/openresquesim_server</code> nach <code>/usr/bin/openresquesim-server</code> kopieren; den Ordner <code>src/web</code> nach <code>/usr/share/openresquesim/web</code>.</li>
       </ol>
 
       <h3>4 · Verzeichnisse</h3>
-      <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>sudo install -d -o root -g root /var/lib/openresquesim /var/cache/openresquesim /var/log/openresquesim /etc/openresquesim</code></pre>
+      <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>sudo adduser --system --group --home /var/lib/openresquesim --no-create-home openresquesim
+sudo usermod -aG audio,video openresquesim
+sudo install -d -o openresquesim -g openresquesim /var/lib/openresquesim /var/cache/openresquesim /var/log/openresquesim
+sudo install -d /etc/openresquesim/update-keys
+sudo install -m 440 scripts/sudoers.openresquesim /etc/sudoers.d/openresquesim</code></pre>
       <div class="overflow-x-auto">
         <table class="table table-sm">
           <thead><tr><th>Pfad</th><th>Inhalt</th></tr></thead>
@@ -242,8 +266,9 @@ Wants=network.target
 
 [Service]
 Type=simple
-User=root
-Group=root
+User=openresquesim
+Group=openresquesim
+SupplementaryGroups=audio video
 PrivateDevices=false
 StateDirectory=openresquesim
 CacheDirectory=openresquesim
@@ -256,6 +281,7 @@ Environment=XDG_CACHE_HOME=/var/cache/openresquesim
 Environment=XDG_RUNTIME_DIR=/run/openresquesim
 Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Environment=NO_AT_BRIDGE=1
+EnvironmentFile=-/etc/openresquesim/server.env
 EnvironmentFile=-/etc/openresquesim/tls.env
 WorkingDirectory=/var/lib/openresquesim
 ExecStart=/usr/bin/openresquesim-server
@@ -298,12 +324,13 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       </ul>
 
       <h3>9 · HTTPS und Lautsprecher</h3>
-      <p>HTTPS für die Durchsage-Geräte: <code>sudo ./scripts/setup_https.sh</code>, Details unter <a class="link" href="#https">HTTPS einrichten</a>. Raumlautsprecher auf dem Raspberry Pi: <code>sudo ./speaker/install_speaker.sh &lt;server&gt;:8393 "Simraum 1" simraum</code>, Details unter <a class="link" href="#audio">Audio &amp; Durchsagen</a>.</p>
+      <p>HTTPS für die Durchsage-Geräte: <code>sudo ./scripts/setup_https.sh</code>, Details unter <a class="link" href="#https">HTTPS einrichten</a>. Raumlautsprecher auf dem Raspberry Pi (aus dem Geräte-Repository <b>OpenRescueSim-Devices</b>, Ordner <code>speaker_pi/</code>): <code>sudo ./install_speaker.sh &lt;server&gt;:8393 "Simraum 1" simraum</code>, Details unter <a class="link" href="#audio">Audio &amp; Durchsagen</a>.</p>
 
       <h3>10 · Updates</h3>
       <ul class="list-disc pl-6 space-y-1">
-        <li>Über die Oberfläche: <span class="ui">Einstellungen</span> → <span class="ui">Aufnahme &amp; Ausgabe</span> → <b>Update</b>: neues Paket hochladen und installieren, der Dienst startet neu.</li>
-        <li>Auf der Konsole: <code>sudo dpkg -i openresquesim-server_*.deb &amp;&amp; sudo systemctl restart openresquesim</code>.</li>
+        <li>Über die Oberfläche: <span class="ui">Einstellungen</span> → <span class="ui">Aufnahme &amp; Ausgabe</span> → <b>Update</b>: signiertes Paket hochladen und installieren (Schlüssel einrichten: siehe dort). Das Log läuft live mit, der Dienst startet am Ende neu.</li>
+        <li>Auf der Konsole: <code>sudo apt install ./openresquesim-server_*.deb</code>. Der Dienst startet von selbst neu; Einstellungen und Zertifikat bleiben.</li>
+        <li>Neue Abhängigkeiten eines Updates holt apt mit. Ohne Internet und ohne lokale Paketquelle bricht das Update dann mit einer Meldung ab, die alte Version läuft weiter.</li>
         <li>Die Datenbank wird beim Start automatisch migriert. Vor Updates <code>/var/lib/openresquesim</code> sichern.</li>
       </ul>
 
@@ -551,7 +578,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       <h3>Raumlautsprecher (Raspberry Pi) einrichten</h3>
       <p>Für die kleinen ESP32-Lautsprecher siehe <a class="link" href="#zusatzgeraete">Lautsprecher &amp; On-Air-Lampe</a>.</p>
       <ol class="steps-list">
-        <li>Auf dem Pi den Client aus dem Projektordner <code>speaker/</code> installieren: <code>sudo ./install_speaker.sh &lt;server:8393&gt; "Simraum 1" simraum</code>. Der Dienst startet automatisch mit dem Gerät.</li>
+        <li>Auf dem Pi den Client aus dem Geräte-Repository <b>OpenRescueSim-Devices</b> (Ordner <code>speaker_pi/</code>) installieren: <code>sudo ./install_speaker.sh &lt;server:8393&gt; "Simraum 1" simraum</code>. Der Dienst startet automatisch mit dem Gerät.</li>
         <li>Das Gerät erscheint unter <span class="ui">Einstellungen</span> → <span class="ui">Kameras &amp; Räume</span> → <b>Raumlautsprecher</b> mit Status <b>online</b>.</li>
         <li>Dort Name und <b>Gruppe</b> eintippen (Feld verlassen speichert), Lautstärke mit dem Schieber setzen.</li>
         <li><span class="ui">🔔 Test</span> spielt einen Testton, <span class="ui">📍</span> lässt das Gerät piepen und blinken, <span class="ui">🔇</span> schaltet stumm, <span class="ui">⟳</span> startet das Gerät neu (es ist danach einige Sekunden offline), <span class="ui">✕</span> entfernt es aus der Liste (ein laufendes Gerät meldet sich neu an).</li>
@@ -646,7 +673,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
 
       <h3>Raumlautsprecher: Funktionsweise</h3>
       <ul class="list-disc pl-6 space-y-1">
-        <li>Meldet sich per <b>WebSocket</b> unter <code>ws://&lt;server&gt;:&lt;port&gt;/ws/voice/speaker</code> an, gleiches Protokoll wie der Raspberry-Pi-Client <code>speaker/ors-speaker.py</code>.</li>
+        <li>Meldet sich per <b>WebSocket</b> unter <code>ws://&lt;server&gt;:&lt;port&gt;/ws/voice/speaker</code> an, gleiches Protokoll wie der Raspberry-Pi-Client <code>speaker_pi/ors-speaker.py</code> im Geräte-Repository.</li>
         <li>Registriert sich mit <code>codec: "l16"</code>. Der Server schickt solchen Geräten <b>unkomprimiertes PCM</b> (RTP/L16, 16 kHz, mono, Payload-Typ 97) statt Opus (eigener Zweig in <code>src/voice.rs</code>).</li>
         <li>Audio kommt per <b>UDP an Port 5006</b> am Gerät an und geht per I2S an DAC bzw. Verstärker.</li>
         <li>Heartbeat alle 5 s (Lautstärke, Stumm, empfangene Pakete, Laufzeit).</li>
@@ -691,7 +718,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       <p>GPIO2, 8 und 9 (D0, D8, D9) nicht verwenden: Das sind Strapping-Pins, GPIO9 hängt zudem am BOOT-Taster.</p>
 
       <h3>Raumlautsprecher: Platinendaten (Variante A)</h3>
-      <p>Im Ordner <code>speaker-esp32/</code>:</p>
+      <p>Im Geräte-Repository <b>OpenRescueSim-Devices</b>, Ordner <code>speaker_esp32/</code>:</p>
       <div class="overflow-x-auto">
         <table class="table table-sm">
           <thead><tr><th>Datei</th><th>Inhalt</th></tr></thead>
@@ -707,7 +734,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       <p>Außenmaße bestückt: 71,0 × 40,0 mm. Die Höhe von etwa 9 mm über der Platine ist geschätzt und muss noch nachgemessen werden.</p>
 
       <h3>Raumlautsprecher: Firmware bauen und flashen</h3>
-      <p>Quelle: <code>speaker-esp32/speaker_esp32.ino</code>, eine Datei für beide Varianten. Die Pins werden anhand des gewählten Boards gesetzt.</p>
+      <p>Quelle: <code>speaker_esp32/speaker_esp32.ino</code> im Geräte-Repository, eine Datei für beide Varianten. Die Pins werden anhand des gewählten Boards gesetzt.</p>
       <ul class="list-disc pl-6 space-y-1">
         <li>Boardpaket „esp32“ von Espressif, <b>Version 2.0.x</b> (getestet 2.0.14). Die Firmware nutzt den I2S-Treiber <code>driver/i2s.h</code> aus Core 2.x.</li>
         <li>Bibliotheken: <b>WebSockets</b> (Markus Sattler, getestet 2.7.2), <b>ArduinoJson</b> (6.x oder 7.x), <b>WiFiManager</b> (tzapu, 2.0.x).</li>
@@ -725,7 +752,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       <pre class="bg-base-300 rounded p-3 text-xs overflow-x-auto"><code>arduino-cli compile --fqbn "esp32:esp32:esp32s3:CDCOnBoot=cdc,USBMode=hwcdc,FlashSize=4M,PSRAM=disabled" --upload -p COMx speaker_esp32</code></pre>
       <ul class="list-disc pl-6 space-y-1">
         <li>Nach dem Flashen bleibt das Board über den USB-Reset im Download-Modus hängen. Einmal <b>abstecken und wieder anstecken</b>, dann startet die Firmware. Serieller Monitor: 115200 Baud.</li>
-        <li>Arduino verlangt, dass der Ordner wie die <code>.ino</code>-Datei heißt (<code>speaker_esp32/speaker_esp32.ino</code>). Im Repo liegt sie unter <code>speaker-esp32/</code>, zum Kompilieren also in einen passend benannten Ordner kopieren oder den Ordner umbenennen.</li>
+        <li>Arduino verlangt, dass der Ordner wie die <code>.ino</code>-Datei heißt. Im Geräte-Repository ist das schon so, den Ordner <code>speaker_esp32/</code> also direkt öffnen.</li>
       </ul>
 
       <h3>Raumlautsprecher: WLAN und Server einrichten</h3>
@@ -802,7 +829,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
       </div>
 
       <h3>On-Air-Lampe: Firmware bauen und flashen</h3>
-      <p>Quelle: <code>relay-onair/relay_onair.ino</code>.</p>
+      <p>Quelle: <code>relay_onair/relay_onair.ino</code> im Geräte-Repository <b>OpenRescueSim-Devices</b>.</p>
       <ul class="list-disc pl-6 space-y-1">
         <li>Boardpaket <b>„esp8266“</b> (getestet 3.1.2), Board <b>Generic ESP8266 Module</b>, Flash Size <b>1MB (FS:64KB)</b>.</li>
         <li>Bibliothek: <b>WiFiManager</b> (tzapu, 2.0.x).</li>
@@ -1027,11 +1054,16 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
         <li><b>Audio-Device</b>, zum Beispiel <code>plughw:1,0</code>. Leer bedeutet Standardgerät.</li>
         <li><span class="ui">Pipeline neu bauen</span> wendet Audio- und Ausgabeänderungen sofort an. Laufende Sessions werden dabei unterbrochen.</li>
       </ul>
-      <h3>Update ohne APT</h3>
+      <h3>Update</h3>
+      <p>Aus der Oberfläche werden nur <b>signierte</b> Pakete installiert. Ein Paket führt bei der Installation Skripte mit Root-Rechten aus; die Signatur stellt sicher, dass es von deinem Build-Rechner stammt und nicht verändert wurde.</p>
       <ol class="steps-list">
-        <li>Neue Server-Datei über <span class="ui">Hochladen</span> auf den Server laden. <span class="ui">↻ Dateien</span> zeigt hochgeladene Dateien.</li>
-        <li>Die gewünschte Datei installieren. Der Dienst startet danach neu.</li>
+        <li><b>Einmalig auf dem Build-Rechner</b>: <code>scripts/sign_update.sh --init</code> erzeugt ein Schlüsselpaar unter <code>~/.config/openresquesim/</code>. Den privaten Schlüssel sichern und nicht weitergeben.</li>
+        <li><b>Einmalig auf jedem Server</b>: den öffentlichen Schlüssel <code>update-signing.pem</code> hinkopieren und <code>sudo install -D -m 644 update-signing.pem /etc/openresquesim/update-keys/build.pem</code>. Das geht nur auf der Konsole, nicht aus der Oberfläche.</li>
+        <li><b>Je Update</b>: nach <code>cargo deb</code> das Paket signieren: <code>scripts/sign_update.sh target/debian/openresquesim-server_*.deb</code>. Es entsteht eine <code>.deb.sig</code>-Datei.</li>
+        <li>Hier <code>.deb</code> und <code>.deb.sig</code> zusammen auswählen und <span class="ui">Hochladen</span>. Die Liste zeigt „🔏 signiert“; <span class="ui">Installieren</span> ist erst dann möglich.</li>
+        <li>Das Update läuft im Hintergrund, das Log erscheint darunter. Fehlende Abhängigkeiten holt apt mit (dafür braucht der Server Paketquellen bzw. Internet). Am Ende startet der Dienst neu, die Seite zeigt die neue Version. Eine laufende Session wird dabei beendet.</li>
       </ol>
+      <div class="tip">Fehlt die Signatur oder passt sie nicht, wird nichts installiert, die alte Version läuft weiter. Auf der Konsole geht ein Update jederzeit auch ohne Signatur: <code>sudo apt install ./openresquesim-server_*.deb</code>.</div>
       <h3>VOD Downloads</h3>
       <p><span class="ui">Öffnen</span> zeigt das Fenster zum Herunterladen von Aufnahmen, siehe <a class="link" href="#sessions">Sessions verwalten</a>.</p>
       <h3>Logfiles aufräumen</h3>
@@ -1092,7 +1124,7 @@ gst-launch-1.0 -v alsasrc device=plughw:1,0 ! audio/x-raw,rate=48000 ! fakesink<
           <li>Der Dienst wird neu gestartet und lauscht zusätzlich auf Port 8443. Im Log steht „Listening on https://…“.</li>
           <li>Nach 825 Tagen das Skript erneut ausführen. Das Wurzelzertifikat auf den Geräten bleibt gültig.</li>
         </ol>
-        <div class="tip">Rechte: Läuft der Dienst nicht als root, erlaubt die vom Debian-Paket installierte Regel <code>/etc/sudoers.d/openresquesim</code> genau diesen einen Aufruf. Fehlt sie, meldet die Karte „Ohne Rechte“. Ohne Internet müssen <code>mkcert</code> und <code>libnss3-tools</code> installiert sein (Abhängigkeiten des Pakets).</div>
+        <div class="tip">Rechte: Der Dienst läuft nicht als root; die vom Debian-Paket installierte Regel <code>/etc/sudoers.d/openresquesim</code> erlaubt genau diesen Aufruf, das Skript nimmt nur Hostnamen und IP-Adressen an. Fehlt sie, meldet die Karte „Ohne Rechte“. Ohne Internet müssen <code>mkcert</code> und <code>libnss3-tools</code> installiert sein (Abhängigkeiten des Pakets).</div>
         <div class="tip">Immer denselben Hostnamen verwenden, der im Zertifikat steht. <code>&lt;hostname&gt;.local</code> löst über Avahi/Bonjour auf, das Skript aktiviert den Dienst mit.</div>
       </div>
     </section>

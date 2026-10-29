@@ -92,6 +92,7 @@ mod state;
 mod stream_auth;
 mod pairing;
 mod https_admin;
+mod privileged;
 mod web_frontend;
 mod ws;
 
@@ -415,6 +416,7 @@ fn build_api_router() -> Router<AppCtx> {
             "/api/admin/update/install",
             post(routes::admin_update_install),
         )
+        .route("/api/admin/update/status", get(routes::admin_update_status))
         // Simulate
         .route("/api/sim/prestart", post(sim::sim_prestart))
         .route("/api/sim/commit", post(sim::sim_commit))

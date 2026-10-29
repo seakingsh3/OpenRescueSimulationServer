@@ -1,0 +1,46 @@
+Template: openresquesim-server/http_port
+Type: string
+Default: 8393
+Description: Port für die Weboberfläche (HTTP):
+ Unter diesem Port erreichen Browser, Zuschauer-Bildschirme, Pager und
+ Raumlautsprecher den Server, z.B. http://<server>:8393. Ohne besonderen
+ Grund den Standard 8393 lassen; die Geräte-Firmware erwartet ihn.
+
+Template: openresquesim-server/https_enable
+Type: boolean
+Default: true
+Description: HTTPS jetzt einrichten?
+ Browser geben das Mikrofon für Durchsagen (Push-to-Talk) nur über HTTPS
+ frei. Dafür wird eine lokale Zertifizierungsstelle angelegt (mkcert, ohne
+ Internet). Ihr Wurzelzertifikat installieren Sie danach einmal auf den
+ iPads/PCs der Ausbilder; Download und QR-Code stehen auf der Systemseite.
+ .
+ HTTPS lässt sich auch später einrichten oder erneuern: in der Oberfläche
+ unter Optionen → Systemstatus → HTTPS.
+
+Template: openresquesim-server/https_names
+Type: string
+Default:
+Description: Namen und IP-Adressen für das Zertifikat:
+ Leer lassen für die automatische Auswahl: <hostname>.local, <hostname> und
+ alle IPv4-Adressen dieses Rechners. Sonst mehrere Einträge mit Leerzeichen
+ trennen, z.B. "ors.local 192.168.1.20".
+
+Template: openresquesim-server/https_port
+Type: string
+Default: 8443
+Description: Port für HTTPS:
+ Ausbilder-Geräte öffnen die Oberfläche dann unter https://<name>:8443/ui.
+
+Template: openresquesim-server/firewall
+Type: boolean
+Default: true
+Description: Firewall (ufw) für OpenRescueSim öffnen?
+ Die Firewall ufw ist aktiv. Geöffnet werden die Ports der Weboberfläche
+ (HTTP und HTTPS) sowie UDP 1024-65535 für die Live-Übertragung (WebRTC).
+
+Template: openresquesim-server/invalid_port
+Type: error
+Description: Ungültiger Port
+ Bitte eine Zahl zwischen 1 und 65535 eingeben. HTTP- und HTTPS-Port müssen
+ verschieden sein.

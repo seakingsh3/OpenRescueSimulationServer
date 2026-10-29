@@ -134,34 +134,36 @@ async fn control_allowed(ctx: &AppCtx) -> bool {
     }
 }
 
-pub async fn reboot_handler(State(ctx): State<AppCtx>) -> Json<serde_json::Value> {
-    if !control_allowed(&ctx).await {
-        return Json(
-            serde_json::json!({"ok": false, "error":"control disabled (set host.control_enable=true)"}),
-        );
+pub async fn reboot_handler(
+    user: crate::routes::AuthUser,
+    State(ctx): State<AppCtx>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    if user.role != "admin" {
+        return Err(axum::http::StatusCode::FORBIDDEN);
     }
-    let ok = spawn_blocking(|| Command::new("systemctl").arg("reboot").status())
-        .await
-        .ok()
-        .and_then(|r| r.ok())
-        .map(|st| st.success())
-        .unwrap_or(false);
-    Json(serde_json::json!({ "ok": ok }))
+    if !control_allowed(&ctx).await {
+        return Ok(Json(
+            serde_json::json!({"ok": false, "error":"control disabled (set host.control_enable=true)"}),
+        ));
+    }
+    let ok = spawn_blocking(|| crate::privileged::power("reboot")).await.unwrap_or(false);
+    Ok(Json(serde_json::json!({ "ok": ok })))
 }
 
-pub async fn poweroff_handler(State(ctx): State<AppCtx>) -> Json<serde_json::Value> {
-    if !control_allowed(&ctx).await {
-        return Json(
-            serde_json::json!({"ok": false, "error":"control disabled (set host.control_enable=true)"}),
-        );
+pub async fn poweroff_handler(
+    user: crate::routes::AuthUser,
+    State(ctx): State<AppCtx>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    if user.role != "admin" {
+        return Err(axum::http::StatusCode::FORBIDDEN);
     }
-    let ok = spawn_blocking(|| Command::new("systemctl").arg("poweroff").status())
-        .await
-        .ok()
-        .and_then(|r| r.ok())
-        .map(|st| st.success())
-        .unwrap_or(false);
-    Json(serde_json::json!({ "ok": ok }))
+    if !control_allowed(&ctx).await {
+        return Ok(Json(
+            serde_json::json!({"ok": false, "error":"control disabled (set host.control_enable=true)"}),
+        ));
+    }
+    let ok = spawn_blocking(|| crate::privileged::power("poweroff")).await.unwrap_or(false);
+    Ok(Json(serde_json::json!({ "ok": ok })))
 }
 
 fn systemd_unit_name() -> String {
@@ -170,13 +172,29 @@ fn systemd_unit_name() -> String {
         .unwrap_or_else(|_| "openresquesim.service".to_string())
 }
 
-pub async fn restart_service_handler(State(ctx): State<AppCtx>) -> Json<serde_json::Value> {
+pub async fn restart_service_handler(
+    user: crate::routes::AuthUser,
+    State(ctx): State<AppCtx>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    if user.role != "admin" {
+        return Err(axum::http::StatusCode::FORBIDDEN);
+    }
     if !control_allowed(&ctx).await {
-        return Json(
+        return Ok(Json(
             serde_json::json!({"ok": false, "error":"control disabled (set host.control_enable=true)"}),
-        );
+        ));
     }
     let unit = systemd_unit_name();
+    if !crate::privileged::is_root() {
+        // Ohne root: selbst beenden, systemd startet den Dienst neu (Restart=always).
+        // Kurz warten, damit die Antwort noch beim Browser ankommt.
+        tokio::spawn(async {
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            tracing::warn!("Dienst-Neustart aus der Oberfläche: beende Prozess, systemd startet neu");
+            unsafe { libc::raise(libc::SIGTERM) };
+        });
+        return Ok(Json(serde_json::json!({ "ok": true, "unit": unit })));
+    }
     let ok = spawn_blocking({
         let unit = unit.clone();
         move || Command::new("systemctl").arg("restart").arg(unit).status()
@@ -186,7 +204,7 @@ pub async fn restart_service_handler(State(ctx): State<AppCtx>) -> Json<serde_js
     .and_then(|r| r.ok())
     .map(|st| st.success())
     .unwrap_or(false);
-    Json(serde_json::json!({ "ok": ok, "unit": unit }))
+    Ok(Json(serde_json::json!({ "ok": ok, "unit": unit })))
 }
 
 #[derive(Serialize, Debug, Clone)]

@@ -1,3 +1,12 @@
+> **Hinweis:** Das Debian-Paket (`cargo deb`, siehe README) erledigt die Schritte 1–3 und 8 inzwischen selbst
+> (geführte Installation, systemd-Unit, HTTPS). Diese Anleitung bleibt für Installationen ohne Paket und als
+> Referenz. Eine früher von Hand angelegte `/etc/systemd/system/openresquesim.service` hat Vorrang vor der Unit
+> aus dem Paket; zum Umstieg löschen und `sudo systemctl daemon-reload` ausführen.
+>
+> Seit dem Paket mit geführter Installation läuft der Dienst als Benutzer `openresquesim`, nicht mehr als root
+> (Abschnitt 2 und 3 unten beschreiben noch den alten root-Betrieb). Root-Aufrufe sind einzeln in
+> `scripts/sudoers.openresquesim` freigegeben; die Hilfe (Abschnitt „Server installieren“) zeigt die Schritte von Hand.
+
 Unten ist eine reproduzierbare Installation auf Debian 13 (Trixie), inklusive systemd-Unit und den Systemänderungen, die wir im Verlauf als erforderlich identifiziert haben (GStreamer WebRTC + Recording/VOD via ffmpeg, Headless-Betrieb, Audio via ALSA).
 
 ---

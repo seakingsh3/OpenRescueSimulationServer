@@ -1,5 +1,10 @@
 # /etc/sudoers.d/openresquesim – mitgeliefert vom Paket openresquesim-server.
-# Nur nötig, wenn der Dienst NICHT als root läuft (Benutzer openresquesim): erlaubt genau
-# den Aufruf, mit dem die Systemseite HTTPS einrichtet (src/https_admin.rs), sonst nichts.
-# Argumente nach dem Skript sind Hostnamen/IPs, die der Server vorher prüft.
-openresquesim ALL=(root) NOPASSWD: /usr/bin/systemd-run --unit ors-https-setup --collect --quiet -p StandardOutput=append\:/var/log/openresquesim-https-setup.log -p StandardError=append\:/var/log/openresquesim-https-setup.log /usr/share/openresquesim/scripts/setup_https.sh *
+# Der Dienst läuft als Benutzer openresquesim. Diese Regeln geben ihm genau die Aufrufe frei,
+# die die Oberfläche braucht, sonst nichts. Die Skripte prüfen ihre Argumente selbst.
+#
+# HTTPS einrichten/erneuern (src/https_admin.rs); Argumente: Hostnamen/IPs
+openresquesim ALL=(root) NOPASSWD: /usr/bin/systemd-run --unit ors-https-setup --collect --quiet -p StandardOutput=append\:/var/log/openresquesim/https-setup.log -p StandardError=append\:/var/log/openresquesim/https-setup.log /usr/share/openresquesim/scripts/setup_https.sh *
+# Update installieren (src/routes.rs); das Skript installiert nur signierte Pakete aus dem Update-Ordner
+openresquesim ALL=(root) NOPASSWD: /usr/bin/systemd-run --unit ors-update --collect --quiet -p StandardOutput=append\:/var/log/openresquesim/update.log -p StandardError=append\:/var/log/openresquesim/update.log /usr/share/openresquesim/scripts/install_update.sh *
+# Rechner neu starten / herunterfahren (src/host.rs)
+openresquesim ALL=(root) NOPASSWD: /usr/bin/systemctl reboot, /usr/bin/systemctl poweroff
